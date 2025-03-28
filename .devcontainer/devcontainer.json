@@ -1,0 +1,16 @@
+{
+  "name": "mydrift",
+  "service": "api",
+  "dockerComposeFile": "../docker/docker-compose.yaml",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "eamodio.gitlens",
+        "charliermarsh.ruff",
+        "ms-python.python"
+      ]
+    }
+  },
+  "shutdownAction": "stopCompose"
+}
