@@ -3,8 +3,8 @@ services:
     image: mydrift-api
     container_name: mydrift-api
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: docker/Dockerfile
     volumes:
       - ../:/app
     ports:
