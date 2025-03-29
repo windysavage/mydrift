@@ -1,0 +1,21 @@
+{
+  "name": "mydrift",
+  "service": "dev",
+  "dockerComposeFile": "../docker/docker-compose.yaml",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "eamodio.gitlens",
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "streetsidesoftware.code-spell-checker",
+        "ms-toolsai.jupyter"
+      ],
+      "formatOnSave": true,
+      "defaultFormatter": "charliermarsh.ruff"
+    }
+  },
+  "shutdownAction": "stopCompose"
+}
