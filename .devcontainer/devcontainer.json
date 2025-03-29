@@ -1,6 +1,6 @@
 {
   "name": "mydrift",
-  "service": "api",
+  "service": "dev",
   "dockerComposeFile": "../docker/docker-compose.yaml",
   "workspaceFolder": "/app",
   "customizations": {
