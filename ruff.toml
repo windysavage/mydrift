@@ -1,12 +1,7 @@
-# 支援的 Python 版本
 target-version = "py312"
-
-# 要檢查的資料夾（預設為當前資料夾）
-[tool.ruff]
 include = ["**/*.py"]
 exclude = ["__pycache__", ".venv", "build", "dist"]
 
-# 啟用的 rule 類型
 select = [
   "E",  # pycodestyle errors
   "F",  # pyflakes
@@ -16,17 +11,5 @@ select = [
   "C90" # mccabe (複雜度檢查)
 ]
 
-# 忽略的 rules（可依需求自訂）
 ignore = []
-
-# 最大行寬
 line-length = 100
-
-# import 排序的風格（可選: "google", "pep8", "pycharm", "django"）
-[tool.ruff.isort]
-known-first-party = ["your_project"]
-combine-as-imports = true
-
-# 限制函式複雜度
-[tool.ruff.mccabe]
-max-complexity = 10

@@ -15,6 +15,6 @@ COPY pyproject.toml poetry.lock /app/
 RUN \
     pip install poetry==${POETRY_VERSION} && \
     poetry config virtualenvs.create false && \
-    poetry install --no-root
+    poetry install --no-root --with jupyter
 
 CMD ["bash"]
