@@ -15,6 +15,7 @@ qdrant-client = "^1.13.0"
 torch = "2.6.0"
 sentence-transformers = "^4.0.1"
 ollama = "^0.4.7"
+attrs = "^25.3.0"
 
 [tool.poetry.group.jupyter.dependencies]
 ipykernel = ">=6.29,<7.0"
