@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager, contextmanager
 from qdrant_client import QdrantClient
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 
-QDRANT_HOST = 'http://qdrant:6333'
+QDRANT_HOST = 'http://localhost:6333'
 
 
 @asynccontextmanager
@@ -17,7 +17,7 @@ async def async_qdrant_client() -> AsyncGenerator[AsyncQdrantClient, None]:
 
 
 @contextmanager
-def qdrant_client() -> Generator[QdrantClient, None, None]:
+def sync_qdrant_client() -> Generator[QdrantClient, None, None]:
     client = QdrantClient(url=QDRANT_HOST)
     try:
         yield client

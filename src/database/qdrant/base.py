@@ -3,11 +3,11 @@ from typing import Any
 
 from qdrant_client import models
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
-from qdrant_client.conversions import common_types
-from qdrant_client.http.models import HnswConfigDiff, NamedVector, SearchParams, VectorParams
+from qdrant_client.conversions.common_types import Filter, Record, ScoredPoint
+from qdrant_client.http.models import HnswConfigDiff, NamedVector
 
 
-class BaseQdrantCollection:
+class BaseVecCol:
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         required_attrs = [
@@ -34,7 +34,7 @@ class BaseQdrantCollection:
         assert isinstance(cls.NUMBER_OF_SHARDS, int)
         assert isinstance(cls.NUMBER_OF_REPLICA, int)
         assert isinstance(cls.PAYLOAD_COLUMNS, list)
-        assert isinstance(cls.VECTOR_CONFIG, dict | VectorParams)
+        assert isinstance(cls.VECTOR_CONFIG, dict)
         assert isinstance(cls.HNSW_CONFIG, HnswConfigDiff)
         assert isinstance(cls.PAYLOAD_PARTITIONS, list)
         assert isinstance(cls.PAYLOAD_PARTITION_TYPES, list)
@@ -83,29 +83,28 @@ class BaseQdrantCollection:
     @classmethod
     async def search(
         cls,
-        query_vector: dict[str, Sequence[float]],
+        client: AsyncQdrantClient,
+        query_vector: Sequence[float],
         threshold: float = 0.0,
         limit: int = 30,
         offset: int = 0,
-        exact: bool = False,
         with_vectors: bool = False,
         with_payload: list[str] | bool = True,
         include_filter_map: dict | None = None,
         exclude_filter_map: dict | None = None,
-    ) -> list[common_types.ScoredPoint]:
+    ) -> list[ScoredPoint]:
         query_filter = None
         query_filter = cls._get_filter_condition(
             include_filter_map=include_filter_map, exclude_filter_map=exclude_filter_map
         )
-        query_vector = cls._validate_query_vector(query_vector)
 
         return await cls._search(
+            client=client,
             query_vector=query_vector,
             query_filter=query_filter,
             threshold=threshold,
             limit=limit,
             offset=offset,
-            exact=exact,
             with_vectors=with_vectors,
             with_payload=with_payload,
         )
@@ -124,7 +123,7 @@ class BaseQdrantCollection:
         cls,
         include_filter_map: dict | None = None,
         exclude_filter_map: dict | None = None,
-    ) -> common_types.Filter:
+    ) -> Filter:
         must = (
             [
                 cls._build_field_condition(include_key, include_value)
@@ -145,57 +144,26 @@ class BaseQdrantCollection:
         return models.Filter(must=must, must_not=must_not)
 
     @classmethod
-    def _validate_query_vector(
-        cls, query_vectors: dict[str, Sequence[float]]
-    ) -> dict[str, list[float]]:
-        if not isinstance(query_vectors, dict):
-            raise TypeError(f'Expected a dict of vectors, but got {type(query_vectors).__name__}.')
-
-        validated_vectors = {}
-
-        for name, vector in query_vectors.items():
-            if name not in cls.VECTOR_CONFIG:
-                raise ValueError(f"Vector name '{name}' not found in VECTOR_CONFIG.")
-            if not isinstance(vector, Sequence) or isinstance(vector, str | bytes):
-                raise TypeError(f"Vector for '{name}' must be a Sequence of floats.")
-            validated_vectors[name] = list(vector)
-
-        if not validated_vectors:
-            raise ValueError('At least one valid query vector must be provided.')
-
-        return validated_vectors
-
-    @classmethod
     async def _search(
         cls,
         client: AsyncQdrantClient,
-        query_vectors: dict[str, Sequence[float]],
-        query_filter: common_types.Filter,
+        query_vector: Sequence[float],
+        query_filter: Filter,
         threshold: float,
         limit: int,
         offset: int,
-        exact: bool,
         with_vectors: bool,
         with_payload: list[str],
-    ) -> list[common_types.ScoredPoint]:
-        named_vectors = {
-            name: NamedVector(name=name, vector=list(vec)) for name, vec in query_vectors.items()
-        }
-
-        return await client.search_batch(
+    ) -> list[ScoredPoint]:
+        return await client.search(
             collection_name=cls.get_full_collection_name(),
-            requests=[
-                models.SearchRequest(
-                    vector=named_vectors,
-                    limit=limit,
-                    offset=offset,
-                    filter=query_filter,
-                    params=SearchParams(exact=exact),
-                    score_threshold=threshold,
-                    with_vectors=with_vectors,
-                    with_payload=with_payload,
-                )
-            ],
+            query_vector=NamedVector(name='default', vector=query_vector),
+            limit=limit,
+            offset=offset,
+            query_filter=query_filter,
+            score_threshold=threshold,
+            with_vectors=with_vectors,
+            with_payload=with_payload,
         )
 
     @classmethod
@@ -205,7 +173,7 @@ class BaseQdrantCollection:
         retrieve_list: list[str],
         with_vectors: bool = True,
         with_payload: list[str] | bool = True,
-    ) -> list[common_types.Record]:
+    ) -> list[Record]:
         return await client.retrieve(
             collection_name=cls.get_full_collection_name(),
             ids=retrieve_list,
