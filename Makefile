@@ -1,3 +1,5 @@
+install-dev-package:
+	poetry install --with jupyter
 build:
 	docker compose -f docker/docker-compose.yaml build
 clean-build:

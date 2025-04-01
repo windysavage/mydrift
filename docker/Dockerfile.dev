@@ -1,4 +1,4 @@
-FROM mydrift-api
+FROM api
 
 RUN poetry install --no-root --with jupyter
 
