@@ -75,7 +75,7 @@ class BaseVecCol:
                 await client.create_payload_index(
                     collection_name=full_collection_name,
                     field_name=partition,
-                    field_schema=partition_type.value,
+                    field_schema=partition_type,
                 )
         except Exception as e:
             raise RuntimeError(f'Failed to partition collection "{full_collection_name}"') from e

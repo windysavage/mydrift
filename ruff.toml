@@ -14,7 +14,8 @@ lint.select = [
   "I",  # isort (import sort)
   "UP", # pyupgrade
   "B",  # bugbear
-  "C90" # mccabe (複雜度檢查)
+  "C90", # mccabe (複雜度檢查)
+  "ANN"
 ]
 
 lint.ignore = []
