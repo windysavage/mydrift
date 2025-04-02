@@ -60,3 +60,16 @@ services:
     volumes:
       - ../data/qdrant_data:/qdrant/storage
     restart: unless-stopped
+
+  streamlit_ui:
+    build:
+      context: ../ui
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit_ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../data/streamlit:/app/data  # 如果你有共享資料夾（例如 messages.json 放這）
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
