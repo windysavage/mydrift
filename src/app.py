@@ -22,24 +22,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 app = FastAPI(lifespan=lifespan)
 
 
-async def fake_stream_response(message: str) -> AsyncGenerator[str, None]:
+async def chat_stream_response(message: str) -> AsyncGenerator[str, None]:
     async with async_qdrant_client() as client:
         chat_agent = ChatAgent(
-            username='',
+            username='RH Huang',
             qdrant_client=client,
             embedding_model=app.state.embedding_model,
-            llm_model_name='llama3:8b',
+            llm_model_name='gemma3:4b',
         )
-        response = await chat_agent.generate_response(query=message)
-        for word in response:
+        response = chat_agent.generate_response(query=message)
+        async for word in response:
             yield word
-            # await asyncio.sleep(0.05)  # 模擬生成延遲
 
 
 @app.post('/chat')
 async def chat_with_agent(request: MessagePayload) -> dict:
     message = request.message
-    return StreamingResponse(fake_stream_response(message), media_type='text/plain')
+    return StreamingResponse(chat_stream_response(message), media_type='text/plain')
 
 
 @app.get('/health_check')

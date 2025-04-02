@@ -1,7 +1,9 @@
+from collections.abc import AsyncGenerator
+
 import attr
-from ollama import generate
 from qdrant_client.conversions.common_types import ScoredPoint
 
+from agent.client import async_ollama_client
 from database.qdrant.chat_vec import ChatVec
 
 
@@ -40,11 +42,15 @@ class ChatAgent:
         context = ' '.join([result.payload['text'] for result in results])
         return context
 
-    async def generate_response(self, query: str, context_window: int = 3) -> None:
+    async def generate_response(
+        self, query: str, context_window: int = 3
+    ) -> AsyncGenerator[str, None]:
         context = await self.retrieve_context(query, context_window=context_window)
-        for chunk in generate(
-            model=self.llm_model_name,
-            prompt=self._construct_prompt(context=context, query=query),
-            stream=True,
-        ):
-            print(chunk['response'], end='', flush=True)  # 即時輸出
+
+        async with async_ollama_client() as client:
+            async for chunk in await client.generate(
+                model=self.llm_model_name,
+                prompt=self._construct_prompt(context=context, query=query),
+                stream=True,
+            ):
+                yield chunk['response']

@@ -80,7 +80,9 @@ if user_input:
             url = 'http://api:8000/chat'  # ✅ 請根據你的 API URL 調整
             reply = ''
             async with httpx.AsyncClient() as client:
-                async with client.stream('POST', url, json={'message': message}) as resp:
+                async with client.stream(
+                    'POST', url, json={'message': message}, timeout=30
+                ) as resp:
                     async for chunk in resp.aiter_text():
                         reply += chunk
                         msg_placeholder.markdown(reply + '▌')
