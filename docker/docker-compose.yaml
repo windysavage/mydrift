@@ -8,13 +8,14 @@ services:
     volumes:
       - ../:/app
     ports:
-      - "5000:5000"
+      - "8000:8000"
     working_dir: /app
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     tty: true
     stdin_open: true
+    command: python3 src/run_api.py
 
   dev:
     image: dev
@@ -30,15 +31,6 @@ services:
     restart: unless-stopped
     tty: true
     stdin_open: true
-
-  mongodb:
-    image: mongo:8.0
-    container_name: mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - ../data/mongodb:/data/db
 
   mongo-express:
     image: mongo-express:1-18
@@ -74,3 +66,13 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+  
+  ollama:
+    image: ollama/ollama:0.6.3
+    container_name: ollama
+    volumes:
+      - ../data/ollama:/root/.ollama
+      - ./entrypoint.sh:/entrypoint.sh
+    ports:
+      - "11434:11434"
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]

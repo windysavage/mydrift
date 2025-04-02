@@ -1,5 +1,7 @@
+import asyncio
 import os
 
+import httpx
 import streamlit as st
 
 # 頁面設定
@@ -65,13 +67,28 @@ for msg in st.session_state.messages:
 user_input = st.chat_input('輸入你的問題...')
 
 if user_input:
-    # 加入使用者訊息
+    # 顯示使用者輸入
     st.session_state.messages.append({'role': 'user', 'content': user_input})
     with st.chat_message('user'):
         st.markdown(user_input)
 
-    # 模擬 assistant 回覆（TODO: 呼叫後端 API）
-    response = '測試訊息'
-    st.session_state.messages.append({'role': 'assistant', 'content': response})
+    # 建立空白區塊來更新逐字輸出
     with st.chat_message('assistant'):
-        st.markdown(response)
+        msg_placeholder = st.empty()
+
+        async def get_streaming_reply(message: str) -> str:
+            url = 'http://api:8000/chat'  # ✅ 請根據你的 API URL 調整
+            reply = ''
+            async with httpx.AsyncClient() as client:
+                async with client.stream('POST', url, json={'message': message}) as resp:
+                    async for chunk in resp.aiter_text():
+                        reply += chunk
+                        msg_placeholder.markdown(reply + '▌')
+            msg_placeholder.markdown(reply)  # 最終清除游標
+            return reply
+
+        # 執行 async stream 回覆並取得最終內容
+        final_response = asyncio.run(get_streaming_reply(user_input))
+
+    # 儲存 assistant 回覆
+    st.session_state.messages.append({'role': 'assistant', 'content': final_response})
