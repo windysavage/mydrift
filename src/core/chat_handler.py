@@ -14,12 +14,15 @@ class ChatHandler:
     llm_name: str
     llm_source: str
 
-    async def get_chat_response(self, message: str) -> AsyncGenerator[str, None]:
+    async def get_chat_response(
+        self, message: str, llm_name: str, llm_source: str
+    ) -> AsyncGenerator[str, None]:
         chat_agent = ChatAgent(
             username=self.username,
             qdrant_client=self.qdrant_client,
             embedding_model=self.embedding_model,
-            llm_model_name='gemma3:4b',
+            llm_name=llm_name,
+            llm_source=llm_source,
         )
         async for token in chat_agent.generate_response(query=message):
             yield token

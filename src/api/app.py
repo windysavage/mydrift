@@ -41,7 +41,7 @@ async def chat_stream_response(
             llm_name=llm_name,
             llm_source=llm_source,
         )
-        response = handler.get_chat_response(message)
+        response = handler.get_chat_response(message, llm_name, llm_source)
         async for token in response:
             yield token
 
