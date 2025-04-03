@@ -1,6 +1,8 @@
 import attr
 
 from core.utils import decode_content, generate_chunk_id, mask_urls
+from database.mongodb.chat_doc import ChatDoc
+from database.mongodb.client import async_mongodb_client
 from database.qdrant.chat_vec import ChatVec
 from database.qdrant.client import async_qdrant_client
 
@@ -43,6 +45,10 @@ class ReindexHandler:
         async with async_qdrant_client() as client:
             await ChatVec.iter_upsert_points(
                 client=client, points=ChatVec.prepare_iter_points(chunks, embeddings)
+            )
+        async with async_mongodb_client() as client:
+            await ChatDoc.iter_upsert_docs(
+                client=client, docs=ChatDoc.prepare_iter_docs(chunks)
             )
 
         print(f'📤 上傳 {len(chunks)} chunks')

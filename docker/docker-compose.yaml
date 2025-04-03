@@ -53,3 +53,24 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+
+  mongodb:
+    image: mongo:8.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../data/mongodb:/data/db
+
+  mongo-express:
+    image: mongo-express:1-18
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
