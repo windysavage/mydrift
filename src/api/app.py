@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from agent.chat_agent import ChatAgent
 from api.schema import MessagePayload, UploadJsonPayload
+from core.reindex_handler import ReindexHandler
 from database.qdrant.client import async_qdrant_client
 from embedding.loader import load_embedding_model_by_name
 
@@ -46,13 +47,16 @@ async def upload_json(payload: UploadJsonPayload) -> dict:
     memory_name = payload.memory_name
     documents = payload.documents
 
-    # 在這裡可以：清除 Qdrant index、處理資料、嵌入、存入 Qdrant 等
-    print(f'[info] 收到記憶庫：{memory_name}，共 {len(documents)} 筆 JSON 文件')
+    handler = ReindexHandler(
+        documents=documents, embedding_model=app.state.embedding_model, window_sizes=[5], stride=3
+    )
+    total_chunks = await handler.index_message_chunks()
 
     return {
         'status': 'ok',
         'memory_name': memory_name,
-        'count': len(documents),
+        'doc_count': len(documents),
+        'chunk_count': total_chunks,
     }
 
 
