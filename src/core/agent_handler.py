@@ -8,7 +8,7 @@ from core.llm_handler import LLMHandler
 
 
 @attr.s(auto_attribs=True)
-class ChatAgentHandler:
+class AgentHandler:
     username: str
     qdrant_client: AsyncQdrantClient
     embedding_model: object
