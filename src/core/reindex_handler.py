@@ -21,7 +21,9 @@ class ReindexHandler:
         return total_chunks
 
     async def _process_single_document(self, document: dict) -> int:
-        messages = [msg for msg in document.get('messages', []) if self._is_text_message(msg)]
+        messages = [
+            msg for msg in document.get('messages', []) if self._is_text_message(msg)
+        ]
 
         if not messages:
             return 0
@@ -36,11 +38,14 @@ class ReindexHandler:
             return 0
 
         text_list = [chunk['text'] for chunk in chunks]
-        embeddings = self.embedding_model.encode(sentences=text_list, show_progress_bar=True)
+        embeddings = self.embedding_model.encode(
+            sentences=text_list, show_progress_bar=True
+        )
 
         async with async_qdrant_client() as client:
-            iter_points = ChatVec.prepare_iter_points(chunks, embeddings)
-            await ChatVec.iter_upsert_points(client=client, points=iter_points)
+            await ChatVec.iter_upsert_points(
+                client=client, points=ChatVec.prepare_iter_points(chunks, embeddings)
+            )
 
         print(f'📤 上傳 {len(chunks)} chunks')
         return len(chunks)
