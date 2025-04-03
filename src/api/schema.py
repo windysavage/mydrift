@@ -8,5 +8,4 @@ class MessagePayload(BaseModel):
 
 
 class UploadJsonPayload(BaseModel):
-    memory_name: str
     documents: list[dict[str, Any]]

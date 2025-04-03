@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+
 import attr
 
 from core.utils import decode_content, generate_chunk_id, mask_urls
@@ -14,11 +16,10 @@ class ReindexHandler:
     window_sizes: list[int] = [5]
     stride: int = 1
 
-    async def index_message_chunks(self) -> int:
-        total_chunks = 0
-        for doc in self.documents:
-            total_chunks += await self._process_single_document(doc)
-        return total_chunks
+    async def index_message_chunks(self) -> AsyncGenerator[int, None]:
+        for idx, doc in enumerate(self.documents):
+            await self._process_single_document(doc)
+            yield idx + 1
 
     async def _process_single_document(self, document: dict) -> int:
         messages = [

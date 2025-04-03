@@ -3,6 +3,17 @@ from collections.abc import Iterable
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import UpdateOne
 
+from database.mongodb.client import async_mongodb_client
+
+
+async def init_mongodb_cols() -> None:
+    from database.mongodb.chat_doc import ChatDoc
+
+    all_docs = [ChatDoc]
+    async with async_mongodb_client() as client:
+        for col in all_docs:
+            await col.create_collection(client=client)
+
 
 class BaseDocCol:
     def __init_subclass__(cls, **kwargs: dict) -> None:
@@ -75,6 +86,8 @@ class BaseDocCol:
 
         # 把 cursor 轉為 list
         chunks = await cursor.to_list(length=page_size)
+        if not chunks:
+            return {}
 
         # 查詢總數（分頁 UI 會需要）
         total = await collection.count_documents(filter={})

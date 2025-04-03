@@ -6,6 +6,17 @@ from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions.common_types import Filter, ScoredPoint
 from qdrant_client.http.models import HnswConfigDiff, NamedVector
 
+from database.qdrant.client import async_qdrant_client
+
+
+async def init_qdrant_cols() -> None:
+    from database.qdrant.chat_vec import ChatVec
+
+    all_cols = [ChatVec]
+    async with async_qdrant_client() as client:
+        for col in all_cols:
+            await col.create_collection(client=client)
+
 
 class BaseVecCol:
     def __init_subclass__(cls, **kwargs: dict) -> None:

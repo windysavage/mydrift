@@ -1,3 +1,4 @@
+import json
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -7,8 +8,10 @@ from fastapi.responses import StreamingResponse
 from agent.chat_agent import ChatAgent
 from api.schema import MessagePayload, UploadJsonPayload
 from core.reindex_handler import ReindexHandler
+from database.mongodb.base import init_mongodb_cols
 from database.mongodb.chat_doc import ChatDoc
 from database.mongodb.client import async_mongodb_client
+from database.qdrant.base import init_qdrant_cols
 from database.qdrant.client import async_qdrant_client
 from embedding.loader import load_embedding_model_by_name
 
@@ -17,6 +20,8 @@ app = FastAPI()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
+    await init_qdrant_cols()
+    await init_mongodb_cols()
     app.state.embedding_model = load_embedding_model_by_name()
     yield
     print('🛑 Shutting down...')
@@ -38,6 +43,27 @@ async def chat_stream_response(message: str) -> AsyncGenerator[str, None]:
             yield word
 
 
+async def reindex_stream_response(documents: list[dict]) -> AsyncGenerator[int, None]:
+    handler = ReindexHandler(
+        documents=documents,
+        embedding_model=app.state.embedding_model,
+        window_sizes=[5],
+        stride=3,
+    )
+    response = handler.index_message_chunks()
+    async for indexed_doc_count in response:
+        yield (
+            json.dumps(
+                {
+                    'status': 'ok',
+                    'total_doc_count': len(documents),
+                    'indexed_doc_count': indexed_doc_count,
+                }
+            )
+            + '\n'
+        )
+
+
 @app.post('/chat')
 async def chat_with_agent(request: MessagePayload) -> dict:
     message = request.message
@@ -46,23 +72,11 @@ async def chat_with_agent(request: MessagePayload) -> dict:
 
 @app.post('/upload-json')
 async def upload_json(payload: UploadJsonPayload) -> dict:
-    memory_name = payload.memory_name
     documents = payload.documents
 
-    handler = ReindexHandler(
-        documents=documents,
-        embedding_model=app.state.embedding_model,
-        window_sizes=[5],
-        stride=3,
+    return StreamingResponse(
+        reindex_stream_response(documents), media_type='text/plain'
     )
-    total_chunks = await handler.index_message_chunks()
-
-    return {
-        'status': 'ok',
-        'memory_name': memory_name,
-        'doc_count': len(documents),
-        'chunk_count': total_chunks,
-    }
 
 
 @app.get('/get-docs')

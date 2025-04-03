@@ -18,36 +18,55 @@ chat_tab, import_tab, view_tab = st.tabs(
 with import_tab:
     st.header('📤 匯入 JSON 檔案')
 
-    # 📂 檔案上傳區
     uploaded_files = st.file_uploader(
         '選擇 JSON 檔案（可多選）', type=['json'], accept_multiple_files=True
     )
 
-    if uploaded_files and st.button('📨 傳送至後端'):
-        data = []
+    async def send_to_backend_and_stream(data: list[dict]) -> None:
+        progress = st.progress(0)
+        status_text = st.empty()
 
-        for file in uploaded_files:
+        async with httpx.AsyncClient() as client:
             try:
-                content = json.load(file)
-                data.append(content)
+                async with client.stream(
+                    'POST',
+                    'http://api:8000/upload-json',
+                    json={'documents': data},
+                    timeout=1200,  # 根據資料量調整
+                ) as resp:
+                    total = 1  # 先設 1，之後會從 response 裡抓
+                    indexed = 0
+
+                    async for line in resp.aiter_lines():
+                        if not line.strip():
+                            continue
+                        try:
+                            info = json.loads(line)
+                            total = info.get('total_doc_count', total)
+                            indexed = info.get('indexed_doc_count', indexed)
+                            percent = min(int((indexed / total) * 100), 100)
+
+                            status_text.markdown(
+                                f'📄 已建立索引：{indexed}/{total} 筆文件'
+                            )
+                            progress.progress(percent)
+                        except Exception as e:
+                            st.warning(f'無法解析回應：{line} ({e})')
+                    st.success('✅ 索引重建完成')
             except Exception as e:
-                st.error(f'{file.name} 解析失敗：{e}')
+                st.error(f'❌ 傳送過程失敗：{e}')
 
-        if data:
-            response = httpx.post(
-                'http://api:8000/upload-json',
-                json={'memory_name': 'my_memory', 'documents': data},
-            )
-            if response.status_code == 200:
-                st.success('✅ 傳送成功')
-                st.json(response.json())
-            else:
-                st.error(f'❌ 後端錯誤：{response.status_code}')
+    if uploaded_files and st.button('📨 傳送至後端並建立索引'):
+        docs = []
+        for f in uploaded_files:
+            try:
+                content = json.load(f)
+                docs.append(content)
+            except Exception as e:
+                st.error(f'{f.name} 解析失敗：{e}')
 
-    # 🔄 Refresh 記憶庫按鈕
-    if st.button('🔄 重新整理記憶庫'):
-        # TODO: 呼叫 API 重建記憶索引
-        st.info('已觸發記憶庫重建（等待 API 回應）')
+        if docs:
+            asyncio.run(send_to_backend_and_stream(docs))
 
 # --- 💬 聊天介面分頁 ---
 with chat_tab:
@@ -141,8 +160,10 @@ with view_tab:
                 st.session_state.doc_current_page = data.get('page', page)
                 st.session_state.doc_total_pages = data.get('total_pages', 1)
             else:
+                st.session_state.doc_chunks = []
                 st.error(f'❌ API 回傳錯誤：{resp.status_code}')
         except Exception as e:
+            st.session_state.doc_chunks = []
             st.error(f'❌ 發生錯誤：{e}')
 
     # 初始載入
@@ -166,11 +187,16 @@ with view_tab:
 
     # 顯示 chunk 資訊
     chunks = st.session_state.doc_chunks
-    for idx, chunk in enumerate(chunks):
-        with st.expander(f'🧾 片段 {idx + 1}', expanded=True):
-            st.markdown(
-                f'**起始時間**: {format_ts(chunk.get("start_timestamp", "N/A"))}'
-            )
-            st.markdown(f'**結束時間**: {format_ts(chunk.get("end_timestamp", "N/A"))}')
-            st.markdown(f'**發言者**: {", ".join(chunk.get("senders", []))}')
-            st.code(chunk.get('text', ''), language='text')
+    if not chunks:
+        st.info('⚠️ 目前沒有任何資料可顯示')
+    else:
+        for idx, chunk in enumerate(chunks):
+            with st.expander(f'🧾 片段 {idx + 1}', expanded=True):
+                st.markdown(
+                    f'**起始時間**: {format_ts(chunk.get("start_timestamp", "N/A"))}'
+                )
+                st.markdown(
+                    f'**結束時間**: {format_ts(chunk.get("end_timestamp", "N/A"))}'
+                )
+                st.markdown(f'**發言者**: {", ".join(chunk.get("senders", []))}')
+                st.code(chunk.get('text', ''), language='text')
