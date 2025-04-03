@@ -1,8 +1,6 @@
-import hashlib
-import re
-
 import attr
 
+from core.utils import decode_content, generate_chunk_id, mask_urls
 from database.qdrant.chat_vec import ChatVec
 from database.qdrant.client import async_qdrant_client
 
@@ -29,7 +27,7 @@ class ReindexHandler:
             return 0
 
         senders = [
-            self._decode_content(participant.get('name', ''))
+            decode_content(participant.get('name', ''))
             for participant in document.get('participants', [])
         ]
 
@@ -58,10 +56,10 @@ class ReindexHandler:
             for i in range(0, len(messages) - window_size + 1, self.stride):
                 window = messages[i : i + window_size]
                 chunk_text = self._merge_messages_to_chunk(window)
-                chunk_text = self._mask_urls(self._decode_content(chunk_text))
+                chunk_text = mask_urls(decode_content(chunk_text))
 
                 chunk = {
-                    'chunk_id': self._generate_chunk_id(
+                    'chunk_id': generate_chunk_id(
                         start_ts=window[0]['timestamp_ms'],
                         end_ts=window[-1]['timestamp_ms'],
                         senders=senders,
@@ -82,13 +80,3 @@ class ReindexHandler:
 
     def _merge_messages_to_chunk(self, messages: list[dict]) -> str:
         return '\n'.join(f'{msg["sender_name"]}: {msg["content"]}' for msg in messages)
-
-    def _decode_content(self, content_str: str) -> str:
-        return content_str.encode('latin1').decode('utf-8')
-
-    def _mask_urls(self, text: str) -> str:
-        return re.sub(r'https?://\S+', '[LINK]', text)
-
-    def _generate_chunk_id(self, start_ts: int, end_ts: int, senders: list[str]) -> str:
-        base = f'{start_ts}-{end_ts}-{"-".join(sorted(senders))}'
-        return hashlib.md5(base.encode()).hexdigest()
