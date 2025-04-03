@@ -61,3 +61,36 @@ class BaseDocCol:
 
             if operations:
                 await db[full_collection_name].bulk_write(operations, ordered=False)
+
+    @classmethod
+    async def scroll(
+        cls, client: AsyncIOMotorClient, page: int = 1, page_size: int = 20
+    ) -> dict:
+        skip = (page - 1) * page_size
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+        cursor = (
+            collection.find({}).sort('start_timestamp', 1).skip(skip).limit(page_size)
+        )
+
+        # 把 cursor 轉為 list
+        chunks = await cursor.to_list(length=page_size)
+
+        # 查詢總數（分頁 UI 會需要）
+        total = await collection.count_documents(filter={})
+
+        return {
+            'chunks': chunks,
+            'page': page,
+            'page_size': page_size,
+            'total': total,
+            'total_pages': (total + page_size - 1) // page_size,
+        }
+
+    @classmethod
+    async def delete_docs_by_ids(
+        cls, client: AsyncIOMotorClient, ids: list[str]
+    ) -> None:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+        await collection.delete_many({'_id': {'$in': ids}})

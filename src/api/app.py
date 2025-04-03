@@ -7,6 +7,8 @@ from fastapi.responses import StreamingResponse
 from agent.chat_agent import ChatAgent
 from api.schema import MessagePayload, UploadJsonPayload
 from core.reindex_handler import ReindexHandler
+from database.mongodb.chat_doc import ChatDoc
+from database.mongodb.client import async_mongodb_client
 from database.qdrant.client import async_qdrant_client
 from embedding.loader import load_embedding_model_by_name
 
@@ -48,7 +50,10 @@ async def upload_json(payload: UploadJsonPayload) -> dict:
     documents = payload.documents
 
     handler = ReindexHandler(
-        documents=documents, embedding_model=app.state.embedding_model, window_sizes=[5], stride=3
+        documents=documents,
+        embedding_model=app.state.embedding_model,
+        window_sizes=[5],
+        stride=3,
     )
     total_chunks = await handler.index_message_chunks()
 
@@ -58,6 +63,12 @@ async def upload_json(payload: UploadJsonPayload) -> dict:
         'doc_count': len(documents),
         'chunk_count': total_chunks,
     }
+
+
+@app.get('/get-docs')
+async def get_docs(page: int, page_size: int) -> dict:
+    async with async_mongodb_client() as client:
+        return await ChatDoc.scroll(client=client, page=page, page_size=page_size)
 
 
 @app.get('/health_check')
