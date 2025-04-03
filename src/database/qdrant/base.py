@@ -3,12 +3,12 @@ from typing import Any
 
 from qdrant_client import models
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
-from qdrant_client.conversions.common_types import Filter, Record, ScoredPoint
+from qdrant_client.conversions.common_types import Filter, ScoredPoint
 from qdrant_client.http.models import HnswConfigDiff, NamedVector
 
 
 class BaseVecCol:
-    def __init_subclass__(cls, **kwargs) -> None:
+    def __init_subclass__(cls, **kwargs: dict) -> None:
         super().__init_subclass__(**kwargs)
         required_attrs = [
             'COLLECTION_BASE_NAME',
@@ -56,10 +56,14 @@ class BaseVecCol:
                     hnsw_config=cls.HNSW_CONFIG,
                 )
             except Exception as e:
-                raise RuntimeError(f'Failed to create collection "{full_collection_name}"') from e
+                raise RuntimeError(
+                    f'Failed to create collection "{full_collection_name}"'
+                ) from e
 
     @classmethod
-    async def iter_upsert_points(cls, client: AsyncQdrantClient, points: Iterable) -> None:
+    async def iter_upsert_points(
+        cls, client: AsyncQdrantClient, points: Iterable
+    ) -> None:
         for batched_point in points:
             await client.upsert(
                 collection_name=cls.get_full_collection_name(), points=batched_point
@@ -78,7 +82,9 @@ class BaseVecCol:
                     field_schema=partition_type,
                 )
         except Exception as e:
-            raise RuntimeError(f'Failed to partition collection "{full_collection_name}"') from e
+            raise RuntimeError(
+                f'Failed to partition collection "{full_collection_name}"'
+            ) from e
 
     @classmethod
     async def search(
@@ -167,22 +173,8 @@ class BaseVecCol:
         )
 
     @classmethod
-    async def retrieve(
-        cls,
-        client: AsyncQdrantClient,
-        retrieve_list: list[str],
-        with_vectors: bool = True,
-        with_payload: list[str] | bool = True,
-    ) -> list[Record]:
-        return await client.retrieve(
-            collection_name=cls.get_full_collection_name(),
-            ids=retrieve_list,
-            with_vectors=with_vectors,
-            with_payload=with_payload,
-        )
-
-    @classmethod
     def _make_payload(cls, payload_dict: dict[str, Any]) -> dict[str, Any]:
         return {
-            payload_column: payload_dict[payload_column] for payload_column in cls.PAYLOAD_COLUMNS
+            payload_column: payload_dict[payload_column]
+            for payload_column in cls.PAYLOAD_COLUMNS
         }
