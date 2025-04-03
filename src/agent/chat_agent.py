@@ -3,7 +3,6 @@ from collections.abc import AsyncGenerator
 import attr
 from qdrant_client.conversions.common_types import ScoredPoint
 
-from agent.client import async_ollama_client
 from database.qdrant.chat_vec import ChatVec
 
 
@@ -12,9 +11,9 @@ class ChatAgent:
     username: str = attr.ib()
     qdrant_client: object = attr.ib()
     embedding_model: object = attr.ib()
-    llm_model_name: str = attr.ib(default='llama3:8b')
+    llm_chat_func: callable = attr.ib()
 
-    def _construct_prompt(self, context: str, query: str) -> str:
+    def _construct_prompt(self, query: str, context: str) -> str:
         return (
             f'我是 {self.username}，因此所有以{self.username}開頭的訊息都是我說的。'
             f'這裡有我之前的回憶：{context}，'
@@ -46,11 +45,7 @@ class ChatAgent:
         self, query: str, context_window: int = 3
     ) -> AsyncGenerator[str, None]:
         context = await self.retrieve_context(query, context_window=context_window)
-
-        async with async_ollama_client() as client:
-            async for chunk in await client.generate(
-                model=self.llm_model_name,
-                prompt=self._construct_prompt(context=context, query=query),
-                stream=True,
-            ):
-                yield chunk['response']
+        async for token in self.llm_chat_func(
+            prompt=self._construct_prompt(query=query, context=context)
+        ):
+            yield token

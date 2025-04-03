@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from ollama import AsyncClient
+from openai import AsyncOpenAI
 
 from settings import settings
 
@@ -13,3 +14,12 @@ async def async_ollama_client() -> AsyncGenerator[AsyncClient, None]:
         yield client
     finally:
         await client._client.aclose()
+
+
+@asynccontextmanager
+async def async_openai_client() -> AsyncGenerator[AsyncOpenAI, None]:
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    try:
+        yield client
+    finally:
+        await client.close()

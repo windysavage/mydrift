@@ -5,8 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
-from agent.chat_agent import ChatAgent
 from api.schema import MessagePayload, UploadJsonPayload
+from core.agent_handler import AgentHandler
 from core.reindex_handler import ReindexHandler
 from database.mongodb.base import init_mongodb_cols
 from database.mongodb.chat_doc import ChatDoc
@@ -30,17 +30,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 app = FastAPI(lifespan=lifespan)
 
 
-async def chat_stream_response(message: str) -> AsyncGenerator[str, None]:
+async def chat_stream_response(
+    message: str, llm_name: str, llm_source: str
+) -> AsyncGenerator[str, None]:
     async with async_qdrant_client() as client:
-        chat_agent = ChatAgent(
+        handler = AgentHandler(
             username='RH Huang',
             qdrant_client=client,
             embedding_model=app.state.embedding_model,
-            llm_model_name='gemma3:4b',
+            llm_name=llm_name,
+            llm_source=llm_source,
         )
-        response = chat_agent.generate_response(query=message)
-        async for word in response:
-            yield word
+        response = handler.get_chat_response(message, llm_name, llm_source)
+        async for token in response:
+            yield token
 
 
 async def reindex_stream_response(documents: list[dict]) -> AsyncGenerator[int, None]:
@@ -66,8 +69,14 @@ async def reindex_stream_response(documents: list[dict]) -> AsyncGenerator[int, 
 
 @app.post('/chat')
 async def chat_with_agent(request: MessagePayload) -> dict:
-    message = request.message
-    return StreamingResponse(chat_stream_response(message), media_type='text/plain')
+    return StreamingResponse(
+        chat_stream_response(
+            message=request.message,
+            llm_name=request.llm_name,
+            llm_source=request.llm_source,
+        ),
+        media_type='text/plain',
+    )
 
 
 @app.post('/upload-json')

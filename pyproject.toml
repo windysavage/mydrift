@@ -23,6 +23,7 @@ uvicorn = "^0.34.0"
 python-multipart = "^0.0.20"
 motor = "^3.7.0"
 pymongo = "^4.11.3"
+openai = "^1.70.0"
 
 [tool.poetry.group.jupyter.dependencies]
 ipykernel = ">=6.29,<7.0"
