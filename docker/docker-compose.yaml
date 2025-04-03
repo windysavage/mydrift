@@ -8,13 +8,14 @@ services:
     volumes:
       - ../:/app
     ports:
-      - "5000:5000"
+      - "8000:8000"
     working_dir: /app
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     tty: true
     stdin_open: true
+    command: python3 src/run_api.py
 
   dev:
     image: dev
@@ -30,6 +31,28 @@ services:
     restart: unless-stopped
     tty: true
     stdin_open: true
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.5
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ../data/qdrant:/qdrant/storage
+    restart: unless-stopped
+
+  streamlit_ui:
+    build:
+      context: ../ui
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit_ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../ui:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
 
   mongodb:
     image: mongo:8.0
@@ -51,26 +74,3 @@ services:
       ME_CONFIG_MONGODB_PORT: 27017
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin
-
-  qdrant:
-    image: qdrant/qdrant:v1.13.5
-    container_name: qdrant
-    ports:
-      - "6333:6333"
-    volumes:
-      - ../data/qdrant_data:/qdrant/storage
-    restart: unless-stopped
-
-  streamlit_ui:
-    build:
-      context: ../ui
-      dockerfile: Dockerfile.streamlit
-    container_name: streamlit_ui
-    ports:
-      - "8501:8501"
-    volumes:
-      - ../ui:/app
-      - ../data/message:/app/message
-    environment:
-      - PYTHONUNBUFFERED=1
-    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0

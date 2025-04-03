@@ -19,6 +19,6 @@ lint.select = [
 ]
 
 lint.ignore = []
-line-length = 100
+line-length = 88
 
 format.quote-style = "single"
