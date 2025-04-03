@@ -1,5 +1,5 @@
 import asyncio
-import os
+import json
 
 import httpx
 import streamlit as st
@@ -11,38 +11,31 @@ st.title('🧠 MyDrift：個人對話記憶庫')
 # --- 🔧 側邊欄設定 ---
 st.sidebar.header('設定')
 
-# 📂 選擇資料來源資料夾
-default_base_dir = os.path.expanduser('/app')
+# 📂 檔案上傳區（放進側邊欄）
+st.sidebar.subheader('📤 上傳 JSON 檔案')
+uploaded_files = st.sidebar.file_uploader(
+    '選擇 JSON 檔案（可多選）', type=['json'], accept_multiple_files=True
+)
 
-st.sidebar.subheader('📂 選擇資料來源資料夾')
-selected_folder = None
-selected_path = None
+if uploaded_files and st.sidebar.button('📨 傳送至後端'):
+    data = []
 
-if os.path.exists(default_base_dir):
-    folders = sorted(
-        [
-            f
-            for f in os.listdir(default_base_dir)
-            if os.path.isdir(os.path.join(default_base_dir, f))
-        ]
-    )
+    for file in uploaded_files:
+        try:
+            content = json.load(file)
+            data.append(content)
+        except Exception as e:
+            st.sidebar.error(f'{file.name} 解析失敗：{e}')
 
-    if folders:
-        selected_folder = st.sidebar.selectbox('選擇子資料夾', [''] + folders)
-        if selected_folder:
-            selected_path = os.path.join(default_base_dir, selected_folder)
-            st.sidebar.markdown(f'✅ **你選擇的資料夾：** `{selected_path}`')
-
-            if st.sidebar.button('設定資料夾'):
-                # TODO: 呼叫 API 設定資料夾
-                pass
-                st.sidebar.success(f'已設定資料夾：{selected_path}')
+    if data:
+        response = httpx.post(
+            'http://api:8000/upload-json', json={'memory_name': 'my_memory', 'documents': data}
+        )
+        if response.status_code == 200:
+            st.sidebar.success('✅ 傳送成功')
+            st.sidebar.json(response.json())
         else:
-            st.sidebar.info('請從上方選擇一個資料夾')
-    else:
-        st.sidebar.warning(f'`{default_base_dir}` 沒有任何資料夾')
-else:
-    st.sidebar.error(f'❌ 找不到預設目錄：{default_base_dir}')
+            st.sidebar.error(f'❌ 後端錯誤：{response.status_code}')
 
 # 🔄 Refresh 記憶庫按鈕
 st.sidebar.subheader('🔄 重建記憶索引')

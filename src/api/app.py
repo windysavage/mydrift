@@ -5,9 +5,9 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
 from agent.chat_agent import ChatAgent
+from api.schema import MessagePayload, UploadJsonPayload
 from database.qdrant.client import async_qdrant_client
 from embedding.loader import load_embedding_model_by_name
-from schema.chat import MessagePayload
 
 app = FastAPI()
 
@@ -39,6 +39,21 @@ async def chat_stream_response(message: str) -> AsyncGenerator[str, None]:
 async def chat_with_agent(request: MessagePayload) -> dict:
     message = request.message
     return StreamingResponse(chat_stream_response(message), media_type='text/plain')
+
+
+@app.post('/upload-json')
+async def upload_json(payload: UploadJsonPayload) -> dict:
+    memory_name = payload.memory_name
+    documents = payload.documents
+
+    # 在這裡可以：清除 Qdrant index、處理資料、嵌入、存入 Qdrant 等
+    print(f'[info] 收到記憶庫：{memory_name}，共 {len(documents)} 筆 JSON 文件')
+
+    return {
+        'status': 'ok',
+        'memory_name': memory_name,
+        'count': len(documents),
+    }
 
 
 @app.get('/health_check')

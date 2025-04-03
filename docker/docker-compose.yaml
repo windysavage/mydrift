@@ -50,7 +50,6 @@ services:
       - "8501:8501"
     volumes:
       - ../ui:/app
-      - ../data/message:/app/message
     environment:
       - PYTHONUNBUFFERED=1
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
