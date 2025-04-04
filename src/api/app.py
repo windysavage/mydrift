@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from api.schema import MessagePayload, UploadJsonPayload
 from core.agent_handler import AgentHandler
+from core.llm_handler import LLMHandler
 from core.reindex_handler import ReindexHandler
 from database.mongodb.base import init_mongodb_cols
 from database.mongodb.chat_doc import ChatDoc
@@ -34,14 +35,16 @@ async def chat_stream_response(
     message: str, llm_name: str, llm_source: str
 ) -> AsyncGenerator[str, None]:
     async with async_qdrant_client() as client:
-        handler = AgentHandler(
+        llm_handler = LLMHandler(llm_name=llm_name, llm_source=llm_source)
+        llm_chat_func = llm_handler.get_llm_chat_func()
+
+        agent_handler = AgentHandler(
             username='RH Huang',
             qdrant_client=client,
             embedding_model=app.state.embedding_model,
-            llm_name=llm_name,
-            llm_source=llm_source,
+            llm_chat_func=llm_chat_func,
         )
-        response = handler.get_chat_response(message, llm_name, llm_source)
+        response = agent_handler.get_chat_response(message=message)
         async for token in response:
             yield token
 
