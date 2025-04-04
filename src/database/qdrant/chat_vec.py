@@ -9,8 +9,6 @@ from database.qdrant.base import BaseVecCol
 class ChatVec(BaseVecCol):
     COLLECTION_BASE_NAME = 'chat_collection'
     COLLECTION_VERSION_NAME = '2025-04-01'
-    NUMBER_OF_SHARDS = 1
-    NUMBER_OF_REPLICA = 1
     PAYLOAD_COLUMNS = []
     VECTOR_CONFIG = {
         'default': VectorParams(
