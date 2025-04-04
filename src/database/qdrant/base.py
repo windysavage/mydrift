@@ -1,10 +1,16 @@
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from qdrant_client import models
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
-from qdrant_client.conversions.common_types import Filter, ScoredPoint
-from qdrant_client.http.models import HnswConfigDiff, NamedVector
+from qdrant_client.conversions.common_types import ScoredPoint
+from qdrant_client.http import models
+from qdrant_client.http.models import (
+    FieldCondition,
+    HnswConfigDiff,
+    MatchAny,
+    MatchValue,
+    NamedVector,
+)
 
 from database.qdrant.client import async_qdrant_client
 
@@ -57,15 +63,13 @@ class BaseVecCol:
                     hnsw_config=cls.HNSW_CONFIG,
                 )
             except Exception as e:
-                raise RuntimeError(
-                    f'Failed to create collection "{full_collection_name}"'
-                ) from e
+                raise RuntimeError(f'Failed to create "{full_collection_name}"') from e
 
     @classmethod
     async def iter_upsert_points(
-        cls, client: AsyncQdrantClient, points: Iterable
+        cls, client: AsyncQdrantClient, batched_iter_points: Iterable
     ) -> None:
-        for batched_point in points:
+        for batched_point in batched_iter_points:
             await client.upsert(
                 collection_name=cls.get_full_collection_name(), points=batched_point
             )
@@ -76,7 +80,7 @@ class BaseVecCol:
         client: AsyncQdrantClient,
         query_vector: Sequence[float],
         threshold: float = 0.0,
-        limit: int = 30,
+        limit: int = 10,
         offset: int = 0,
         with_vectors: bool = False,
         with_payload: list[str] | bool = True,
@@ -84,36 +88,35 @@ class BaseVecCol:
         exclude_filter_map: dict | None = None,
     ) -> list[ScoredPoint]:
         query_filter = None
-        query_filter = cls._get_filter_condition(
+        query_filter = cls._build_filter_conditions(
             include_filter_map=include_filter_map, exclude_filter_map=exclude_filter_map
         )
-
-        return await cls._search(
-            client=client,
-            query_vector=query_vector,
-            query_filter=query_filter,
-            threshold=threshold,
+        return await client.search(
+            collection_name=cls.get_full_collection_name(),
+            query_vector=NamedVector(name='default', vector=query_vector),
             limit=limit,
             offset=offset,
+            query_filter=query_filter,
+            score_threshold=threshold,
             with_vectors=with_vectors,
             with_payload=with_payload,
         )
 
     @classmethod
-    def _build_field_condition(cls, key: str, value: object) -> models.FieldCondition:
+    def _build_field_condition(cls, key: str, value: object) -> FieldCondition:
         if isinstance(value, Iterable) and not isinstance(value, str | bytes | dict):
-            match = models.MatchAny(any=value)
+            match = MatchAny(any=value)
         else:
-            match = models.MatchValue(value=value)
+            match = MatchValue(value=value)
 
-        return models.FieldCondition(key=key, match=match)
+        return FieldCondition(key=key, match=match)
 
     @classmethod
-    def _get_filter_condition(
+    def _build_filter_conditions(
         cls,
         include_filter_map: dict | None = None,
         exclude_filter_map: dict | None = None,
-    ) -> Filter:
+    ) -> models.Filter:
         must = (
             [
                 cls._build_field_condition(include_key, include_value)
@@ -132,29 +135,6 @@ class BaseVecCol:
         )
 
         return models.Filter(must=must, must_not=must_not)
-
-    @classmethod
-    async def _search(
-        cls,
-        client: AsyncQdrantClient,
-        query_vector: Sequence[float],
-        query_filter: Filter,
-        threshold: float,
-        limit: int,
-        offset: int,
-        with_vectors: bool,
-        with_payload: list[str],
-    ) -> list[ScoredPoint]:
-        return await client.search(
-            collection_name=cls.get_full_collection_name(),
-            query_vector=NamedVector(name='default', vector=query_vector),
-            limit=limit,
-            offset=offset,
-            query_filter=query_filter,
-            score_threshold=threshold,
-            with_vectors=with_vectors,
-            with_payload=with_payload,
-        )
 
     @classmethod
     def _make_payload(cls, payload_dict: dict[str, Any]) -> dict[str, Any]:

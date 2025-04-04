@@ -45,7 +45,8 @@ class ReindexHandler:
 
         async with async_qdrant_client() as client:
             await ChatVec.iter_upsert_points(
-                client=client, points=ChatVec.prepare_iter_points(chunks, embeddings)
+                client=client,
+                batched_iter_points=ChatVec.prepare_iter_points(chunks, embeddings),
             )
         async with async_mongodb_client() as client:
             await ChatDoc.iter_upsert_docs(

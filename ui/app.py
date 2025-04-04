@@ -244,6 +244,7 @@ with view_tab:
         if page_selection != current_page:
             st.session_state.doc_current_page = page_selection
             fetch_page_data(page_selection)
+            st.rerun()
 
         for idx, chunk in enumerate(chunks):
             with st.expander(f'🧾 片段 {idx + 1}', expanded=True):
