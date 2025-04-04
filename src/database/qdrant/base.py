@@ -1,5 +1,4 @@
 from collections.abc import Iterable, Sequence
-from typing import Any
 
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions.common_types import ScoredPoint
@@ -135,10 +134,3 @@ class BaseVecCol:
         )
 
         return models.Filter(must=must, must_not=must_not)
-
-    @classmethod
-    def _make_payload(cls, payload_dict: dict[str, Any]) -> dict[str, Any]:
-        return {
-            payload_column: payload_dict[payload_column]
-            for payload_column in cls.PAYLOAD_COLUMNS
-        }
