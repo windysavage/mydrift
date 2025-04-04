@@ -74,6 +74,10 @@ with chat_tab:
 
     # 模型設定區塊
     with st.expander('⚙️ 模型設定', expanded=False):
+        st.session_state.user_name = st.text_input(
+            '🧑 我的名字', placeholder='輸入你在對話中的名字'
+        )
+
         st.session_state.llm_source = st.selectbox(
             '選擇模型來源', options=['openai', 'ollama'], index=0
         )
@@ -128,6 +132,7 @@ with chat_tab:
                     'llm_source': st.session_state.llm_source,
                     'llm_name': st.session_state.llm_name,
                     'api_key': st.session_state.api_key,
+                    'user_name': st.session_state.user_name,
                 }
                 if st.session_state.api_key:
                     payload['api_key'] = st.session_state.api_key

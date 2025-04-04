@@ -8,6 +8,7 @@ class MessagePayload(BaseModel):
     llm_name: str = 'gpt-4o-mini'
     llm_source: str = 'openai'
     api_key: str | None = None
+    user_name: str | None = None
 
 
 class UploadJsonPayload(BaseModel):

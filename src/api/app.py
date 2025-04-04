@@ -32,7 +32,11 @@ app = FastAPI(lifespan=lifespan)
 
 
 async def chat_stream_response(
-    message: str, llm_name: str, llm_source: str, api_key: str | None
+    message: str,
+    llm_name: str,
+    llm_source: str,
+    api_key: str | None,
+    user_name: str | None,
 ) -> AsyncGenerator[str, None]:
     async with async_qdrant_client() as client:
         llm_handler = LLMHandler(
@@ -41,7 +45,7 @@ async def chat_stream_response(
         llm_chat_func = llm_handler.get_llm_chat_func()
 
         agent_handler = AgentHandler(
-            username='RH Huang',
+            user_name=user_name,
             qdrant_client=client,
             embedding_model=app.state.embedding_model,
             llm_chat_func=llm_chat_func,
@@ -80,6 +84,7 @@ async def chat_with_agent(request: MessagePayload) -> dict:
             llm_name=request.llm_name,
             llm_source=request.llm_source,
             api_key=request.api_key,
+            user_name=request.user_name,
         ),
         media_type='text/plain',
     )
