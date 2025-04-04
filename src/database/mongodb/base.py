@@ -75,13 +75,21 @@ class BaseDocCol:
 
     @classmethod
     async def scroll(
-        cls, client: AsyncIOMotorClient, page: int = 1, page_size: int = 20
+        cls,
+        client: AsyncIOMotorClient,
+        page: int = 1,
+        page_size: int = 20,
+        senders: str = '',
     ) -> dict:
         skip = (page - 1) * page_size
         db = client[cls.DATABASE_NAME]
         collection = db[cls.get_full_collection_name()]
+        query_filter = {'senders': {'$all': senders.split(',')}} if senders else {}
         cursor = (
-            collection.find({}).sort('start_timestamp', 1).skip(skip).limit(page_size)
+            collection.find(query_filter)
+            .sort('start_timestamp', 1)
+            .skip(skip)
+            .limit(page_size)
         )
 
         # 把 cursor 轉為 list
@@ -90,7 +98,7 @@ class BaseDocCol:
             return {}
 
         # 查詢總數（分頁 UI 會需要）
-        total = await collection.count_documents(filter={})
+        total = await collection.count_documents(filter=query_filter)
 
         return {
             'chunks': chunks,

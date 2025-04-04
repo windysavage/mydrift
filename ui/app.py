@@ -170,6 +170,10 @@ with view_tab:
 
     page_size = 3
 
+    sender_filter = st.text_input(
+        '🔍 篩選發言者（使用 , 分隔，例如：王小明,王小花）', value=''
+    )
+
     if 'doc_current_page' not in st.session_state:
         st.session_state.doc_current_page = 1
     if 'doc_total_pages' not in st.session_state:
@@ -177,11 +181,17 @@ with view_tab:
     if 'doc_chunks' not in st.session_state:
         st.session_state.doc_chunks = []
 
+    search_button = st.button('🔍 查詢')
+
     def fetch_page_data(page: int) -> None:
         try:
+            params = {'page': page, 'page_size': page_size}
+            if sender_filter.strip():
+                params['senders'] = sender_filter
+
             resp = httpx.get(
                 'http://api:8000/get-docs',
-                params={'page': page, 'page_size': page_size},
+                params=params,
                 timeout=10,
             )
             if resp.status_code == 200:
@@ -196,27 +206,26 @@ with view_tab:
             st.session_state.doc_chunks = []
             st.error(f'❌ 發生錯誤：{e}')
 
-    if not st.session_state.doc_chunks:
-        fetch_page_data(st.session_state.doc_current_page)
-
-    total_pages = st.session_state.doc_total_pages
-    current_page = st.session_state.doc_current_page
-
-    page_selection = st.selectbox(
-        '',
-        options=list(range(1, total_pages + 1)),
-        index=current_page - 1,
-        format_func=lambda x: f'第 {x} 頁',
-    )
-
-    if page_selection != current_page:
-        fetch_page_data(page_selection)
-        st.rerun()
+    if search_button:
+        fetch_page_data(1)
 
     chunks = st.session_state.doc_chunks
-    if not chunks:
-        st.info('⚠️ 目前沒有任何資料可顯示')
-    else:
+    if chunks:
+        total_pages = st.session_state.doc_total_pages
+        current_page = st.session_state.doc_current_page
+
+        page_selection = st.selectbox(
+            '',
+            options=list(range(1, total_pages + 1)),
+            index=current_page - 1,
+            format_func=lambda x: f'第 {x} 頁',
+        )
+
+        if page_selection != current_page:
+            st.session_state.doc_current_page = page_selection
+            fetch_page_data(page_selection)
+            st.rerun()
+
         for idx, chunk in enumerate(chunks):
             with st.expander(f'🧾 片段 {idx + 1}', expanded=True):
                 st.markdown(
@@ -227,3 +236,5 @@ with view_tab:
                 )
                 st.markdown(f'**發言者**: {", ".join(chunk.get("senders", []))}')
                 st.code(chunk.get('text', ''), language='text')
+    else:
+        st.info('請先輸入發言者並點選「查詢」')

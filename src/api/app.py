@@ -100,9 +100,11 @@ async def upload_json(payload: UploadJsonPayload) -> dict:
 
 
 @app.get('/get-docs')
-async def get_docs(page: int, page_size: int) -> dict:
+async def get_docs(page: int, page_size: int, senders: str = '') -> dict:
     async with async_mongodb_client() as client:
-        return await ChatDoc.scroll(client=client, page=page, page_size=page_size)
+        return await ChatDoc.scroll(
+            client=client, page=page, page_size=page_size, senders=senders
+        )
 
 
 @app.get('/health_check')
