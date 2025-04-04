@@ -32,9 +32,9 @@ with import_tab:
                     'POST',
                     'http://api:8000/upload-json',
                     json={'documents': data},
-                    timeout=1200,  # 根據資料量調整
+                    timeout=1200,
                 ) as resp:
-                    total = 1  # 先設 1，之後會從 response 裡抓
+                    total = 1
                     indexed = 0
 
                     async for line in resp.aiter_lines():
@@ -72,11 +72,28 @@ with import_tab:
 with chat_tab:
     st.header('🔍 問答查詢')
 
-    # 初始化聊天記錄
+    # 模型設定區塊
+    with st.expander('⚙️ 模型設定', expanded=False):
+        st.session_state.llm_source = st.selectbox(
+            '選擇模型來源', options=['openai', 'ollama'], index=0
+        )
+
+        if st.session_state.llm_source == 'openai':
+            st.session_state.llm_name = st.selectbox(
+                '選擇模型名稱', options=['gpt-3.5-turbo', 'gpt-4'], index=0
+            )
+            st.session_state.api_key = st.text_input(
+                'OpenAI API Key', type='password', placeholder='sk-...'
+            )
+        elif st.session_state.llm_source == 'ollama':
+            st.session_state.llm_name = st.selectbox(
+                '選擇模型名稱', options=['llama3', 'mistral', 'gemma'], index=0
+            )
+            st.session_state.api_key = None
+
     if 'messages' not in st.session_state:
         st.session_state.messages = []
 
-    # 聊天訊息顯示區（限制高度並可滾動）
     scrollable_chat = st.container()
     with scrollable_chat:
         st.markdown(
@@ -93,7 +110,6 @@ with chat_tab:
 
         st.markdown("""</div>""", unsafe_allow_html=True)
 
-    # 🧾 使用者輸入區（固定在最下方）
     user_input = st.chat_input('輸入你的問題...')
 
     if user_input:
@@ -107,10 +123,19 @@ with chat_tab:
 
             async def get_streaming_reply(message: str) -> str:
                 url = 'http://api:8000/chat'
+                payload = {
+                    'message': message,
+                    'llm_source': st.session_state.llm_source,
+                    'llm_name': st.session_state.llm_name,
+                    'api_key': st.session_state.api_key,
+                }
+                if st.session_state.api_key:
+                    payload['api_key'] = st.session_state.api_key
+
                 reply = ''
                 async with httpx.AsyncClient() as client:
                     async with client.stream(
-                        'POST', url, json={'message': message}, timeout=30
+                        'POST', url, json=payload, timeout=30
                     ) as resp:
                         async for chunk in resp.aiter_text():
                             reply += chunk
@@ -166,11 +191,9 @@ with view_tab:
             st.session_state.doc_chunks = []
             st.error(f'❌ 發生錯誤：{e}')
 
-    # 初始載入
     if not st.session_state.doc_chunks:
         fetch_page_data(st.session_state.doc_current_page)
 
-    # 🔽 頁碼選單
     total_pages = st.session_state.doc_total_pages
     current_page = st.session_state.doc_current_page
 
@@ -185,7 +208,6 @@ with view_tab:
         fetch_page_data(page_selection)
         st.rerun()
 
-    # 顯示 chunk 資訊
     chunks = st.session_state.doc_chunks
     if not chunks:
         st.info('⚠️ 目前沒有任何資料可顯示')
