@@ -54,7 +54,6 @@ This launches:
 
 - Upload multiple Messenger JSON files
 - Backend indexing with real-time progress
-- Error handling for invalid uploads
 
 ### 📚 Memory Data Viewer
 
@@ -90,9 +89,6 @@ Each uploaded JSON file should follow this structure (example from [Facebook Mes
 ## 📌 Future Plans
 
 - [ ] Import support for note formats like Markdown
-- [ ] Multi-user support & authentication
-- [ ] Chat summarization & tagging features
-- [ ] Performance tuning and caching
 
 ---
 
