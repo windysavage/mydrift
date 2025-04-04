@@ -90,9 +90,29 @@ with chat_tab:
                 'OpenAI API Key', type='password', placeholder='sk-...'
             )
         elif st.session_state.llm_source == 'ollama':
-            st.session_state.llm_name = st.selectbox(
-                '選擇模型名稱', options=['llama3', 'mistral', 'gemma'], index=0
-            )
+            try:
+                response = httpx.get(
+                    'http://host.docker.internal:11434/api/tags', timeout=5
+                )
+                if response.status_code == 200:
+                    models_data = response.json().get('models', [])
+                    available_models = [m['name'] for m in models_data]
+                else:
+                    available_models = []
+                    st.warning('⚠️ 無法取得 Ollama 模型清單')
+            except Exception as e:
+                available_models = []
+                st.warning(f'⚠️ 錯誤：無法連線至 Ollama：{e}')
+
+            if available_models:
+                st.session_state.llm_name = st.selectbox(
+                    '選擇模型名稱', options=available_models, index=0
+                )
+            else:
+                st.session_state.llm_name = st.text_input(
+                    '輸入模型名稱（未列出）', placeholder='例如：llama3'
+                )
+
             st.session_state.api_key = None
 
     if 'messages' not in st.session_state:
@@ -224,7 +244,6 @@ with view_tab:
         if page_selection != current_page:
             st.session_state.doc_current_page = page_selection
             fetch_page_data(page_selection)
-            st.rerun()
 
         for idx, chunk in enumerate(chunks):
             with st.expander(f'🧾 片段 {idx + 1}', expanded=True):
