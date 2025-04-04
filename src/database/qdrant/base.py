@@ -24,13 +24,8 @@ class BaseVecCol:
         required_attrs = [
             'COLLECTION_BASE_NAME',
             'COLLECTION_VERSION_NAME',
-            'NUMBER_OF_SHARDS',
-            'NUMBER_OF_REPLICA',
-            'PAYLOAD_COLUMNS',
             'VECTOR_CONFIG',
             'HNSW_CONFIG',
-            'PAYLOAD_PARTITIONS',
-            'PAYLOAD_PARTITION_TYPES',
         ]
         for attr in required_attrs:
             if getattr(cls, attr, None) is None:
@@ -42,13 +37,8 @@ class BaseVecCol:
     def check_cls_config(cls) -> None:
         assert isinstance(cls.COLLECTION_BASE_NAME, str)
         assert isinstance(cls.COLLECTION_VERSION_NAME, str)
-        assert isinstance(cls.NUMBER_OF_SHARDS, int)
-        assert isinstance(cls.NUMBER_OF_REPLICA, int)
-        assert isinstance(cls.PAYLOAD_COLUMNS, list)
         assert isinstance(cls.VECTOR_CONFIG, dict)
         assert isinstance(cls.HNSW_CONFIG, HnswConfigDiff)
-        assert isinstance(cls.PAYLOAD_PARTITIONS, list)
-        assert isinstance(cls.PAYLOAD_PARTITION_TYPES, list)
 
     @classmethod
     def get_full_collection_name(cls) -> str:
@@ -79,23 +69,6 @@ class BaseVecCol:
             await client.upsert(
                 collection_name=cls.get_full_collection_name(), points=batched_point
             )
-
-    @classmethod
-    async def create_payload_partition(cls, client: AsyncQdrantClient) -> None:
-        full_collection_name = cls.get_full_collection_name()
-        try:
-            for partition, partition_type in zip(
-                cls.PAYLOAD_PARTITIONS, cls.PAYLOAD_PARTITION_TYPES, strict=True
-            ):
-                await client.create_payload_index(
-                    collection_name=full_collection_name,
-                    field_name=partition,
-                    field_schema=partition_type,
-                )
-        except Exception as e:
-            raise RuntimeError(
-                f'Failed to partition collection "{full_collection_name}"'
-            ) from e
 
     @classmethod
     async def search(
