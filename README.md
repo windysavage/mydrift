@@ -1,5 +1,7 @@
 # 🧠 MyDrift
 
+![MyDrift UI Preview](docs/screenshot.png)
+
 **MyDrift** is a conversation-centric personal memory system that combines a **Streamlit** frontend with a **FastAPI** backend, enabling you to import conversation records and perform natural language queries with ease.
 
 ---
@@ -36,7 +38,7 @@ make up
 This launches:
 - 🚀 **FastAPI** backend – chat query & data upload APIs
 - 💻 **Streamlit** frontend – chat interface, data viewer, and import tool
-- 📦 **Qdrant** – vector indexing and search
+- 📦 **Elasticsearch** – vector indexing and search
 
 ---
 
@@ -52,6 +54,7 @@ This launches:
 
 - Upload multiple Messenger JSON files
 - Backend indexing with real-time progress
+- Error handling for invalid uploads
 
 ### 📚 Memory Data Viewer
 
@@ -87,7 +90,9 @@ Each uploaded JSON file should follow this structure (example from [Facebook Mes
 ## 📌 Future Plans
 
 - [ ] Import support for note formats like Markdown
-
+- [ ] Multi-user support & authentication
+- [ ] Chat summarization & tagging features
+- [ ] Performance tuning and caching
 
 ---
 
