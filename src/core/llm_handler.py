@@ -10,6 +10,7 @@ from agent.client import async_ollama_client, async_openai_client
 class LLMHandler:
     llm_name: str
     llm_source: str
+    api_key: str | None
 
     def __attrs_post_init__(self) -> None:
         self.MODEL_REGISTRY = {
@@ -21,7 +22,7 @@ class LLMHandler:
         return self.MODEL_REGISTRY[self.llm_source]
 
     async def _chat_with_openai(self, prompt: str) -> AsyncGenerator[str, None]:
-        async with async_openai_client() as client:
+        async with async_openai_client(api_key=self.api_key) as client:
             async for chunk in await client.responses.create(
                 model=self.llm_name,
                 input=prompt,

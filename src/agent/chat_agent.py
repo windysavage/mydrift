@@ -8,14 +8,14 @@ from database.qdrant.chat_vec import ChatVec
 
 @attr.s()
 class ChatAgent:
-    username: str = attr.ib()
+    user_name: str | None = attr.ib()
     qdrant_client: object = attr.ib()
     embedding_model: object = attr.ib()
     llm_chat_func: callable = attr.ib()
 
     def _construct_prompt(self, query: str, context: str) -> str:
         return (
-            f'我是 {self.username}，因此所有以{self.username}開頭的訊息都是我說的。'
+            f'我是 {self.user_name}，因此所有以{self.user_name}開頭的訊息都是我說的。'
             f'這裡有我之前的回憶：{context}，'
             f'請根據我之前的回憶，回答我下列問題：{query}，'
             '請自行判斷是否需要參考回憶作答'
@@ -29,7 +29,7 @@ class ChatAgent:
             client=self.qdrant_client,
             query_vector=embedding,
             limit=limit,
-            include_filter_map={'senders': self.username},
+            include_filter_map={'senders': self.user_name},
         )
         return results
 

@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 class MessagePayload(BaseModel):
     message: str
-    llm_name: str = 'gpt-4o'
+    llm_name: str = 'gpt-4o-mini'
     llm_source: str = 'openai'
+    api_key: str | None = None
+    user_name: str | None = None
 
 
 class UploadJsonPayload(BaseModel):
