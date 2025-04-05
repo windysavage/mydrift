@@ -74,6 +74,19 @@ class BaseDocCol:
                 await db[full_collection_name].bulk_write(operations, ordered=False)
 
     @classmethod
+    async def get_page_count(
+        cls,
+        client: AsyncIOMotorClient,
+        page_size: int,
+        senders: str = '',
+    ) -> int:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+        query_filter = {'senders': {'$all': senders.split(',')}} if senders else {}
+        total = await collection.count_documents(filter=query_filter)
+        return (total + page_size - 1) // page_size
+
+    @classmethod
     async def scroll(
         cls,
         client: AsyncIOMotorClient,

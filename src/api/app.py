@@ -107,6 +107,16 @@ async def get_paginated_docs(page: int, page_size: int, senders: str = '') -> di
         )
 
 
+@app.get('/get-page-count')
+async def get_page_count(page_size: int = 3, senders: str = '') -> dict:
+    async with async_mongodb_client() as client:
+        return {
+            'total_pages': await ChatDoc.get_page_count(
+                client=client, page_size=page_size, senders=senders
+            )
+        }
+
+
 @app.get('/health_check')
 def health_check() -> None:
     return {'message': 'Hello, FastAPI! Bonjur!'}
