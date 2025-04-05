@@ -52,6 +52,7 @@ class ReindexHandler:
             await ChatDoc.iter_upsert_docs(
                 client=client, docs=ChatDoc.prepare_iter_docs(chunks)
             )
+            await ChatDoc.create_index(client=client)
 
         print(f'📤 上傳 {len(chunks)} chunks')
         return len(chunks)

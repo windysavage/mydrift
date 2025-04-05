@@ -22,6 +22,7 @@ class BaseDocCol:
             'COLLECTION_BASE_NAME',
             'COLLECTION_VERSION_NAME',
             'DATABASE_NAME',
+            'INDEX_FIELDS_WITH_DIRECTION',
         ]
         for attr in required_attrs:
             if getattr(cls, attr, None) is None:
@@ -34,6 +35,7 @@ class BaseDocCol:
         assert isinstance(cls.DATABASE_NAME, str)
         assert isinstance(cls.COLLECTION_BASE_NAME, str)
         assert isinstance(cls.COLLECTION_VERSION_NAME, str)
+        assert isinstance(cls.INDEX_FIELDS_WITH_DIRECTION, list)
 
     @classmethod
     def get_full_collection_name(cls) -> str:
@@ -52,6 +54,14 @@ class BaseDocCol:
                 raise RuntimeError(
                     f'Failed to create collection "{full_collection_name}"'
                 ) from e
+
+    @classmethod
+    async def create_index(cls, client: AsyncIOMotorClient) -> None:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+
+        for field_with_direction in cls.INDEX_FIELDS_WITH_DIRECTION:
+            await collection.create_index([field_with_direction])
 
     @classmethod
     async def iter_upsert_docs(
