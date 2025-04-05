@@ -196,8 +196,6 @@ with view_tab:
 
     if 'doc_current_page' not in st.session_state:
         st.session_state.doc_current_page = 1
-    if 'doc_total_pages' not in st.session_state:
-        st.session_state.doc_total_pages = 1
     if 'doc_chunks' not in st.session_state:
         st.session_state.doc_chunks = []
 
@@ -218,7 +216,6 @@ with view_tab:
                 data = resp.json()
                 st.session_state.doc_chunks = data.get('chunks', [])
                 st.session_state.doc_current_page = data.get('page', page)
-                st.session_state.doc_total_pages = data.get('total_pages', 1)
             else:
                 st.session_state.doc_chunks = []
                 st.error(f'❌ API 回傳錯誤：{resp.status_code}')

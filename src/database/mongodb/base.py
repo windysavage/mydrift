@@ -110,16 +110,7 @@ class BaseDocCol:
         if not chunks:
             return {}
 
-        # 查詢總數（分頁 UI 會需要）
-        total = await collection.count_documents(filter=query_filter)
-
-        return {
-            'chunks': chunks,
-            'page': page,
-            'page_size': page_size,
-            'total': total,
-            'total_pages': (total + page_size - 1) // page_size,
-        }
+        return {'chunks': chunks, 'page': page, 'page_size': page_size}
 
     @classmethod
     async def delete_docs_by_ids(
