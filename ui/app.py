@@ -210,7 +210,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-docs',
+                'http://api:8000/get-paginated-docs',
                 params=params,
                 timeout=10,
             )
