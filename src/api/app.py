@@ -2,6 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import requests
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import (
     HTMLResponse,
@@ -9,9 +10,13 @@ from fastapi.responses import (
     StreamingResponse,
 )
 from google_auth_oauthlib.flow import Flow
-from pydantic import BaseModel
 
-from api.schema import MessagePayload, UploadJsonPayload
+from api.schema import (
+    GmailOAuthPayload,
+    IngestGmailPayload,
+    MessagePayload,
+    UploadJsonPayload,
+)
 from core.agent_handler import AgentHandler
 from core.llm_handler import LLMHandler
 from core.reindex_handler import ReindexHandler
@@ -37,26 +42,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 app = FastAPI(lifespan=lifespan)
 
 
-# 非同步 chunk 上傳任務
-def upload_chunks_async(credentials: object) -> None:
-    try:
-        print(f'credentials: {credentials}')
-    except Exception as e:
-        print('❌ chunk 上傳失敗：', e)
-
-
-# 記憶體儲存暫存的用戶設定（正式環境可用 DB/session 儲存）
-oauth_state = {}
-
-
-# --- /authorize-gmail ---
-class GmailOAuthRequest(BaseModel):
-    client_id: str
-    client_secret: str
-
-
 @app.post('/authorize-gmail')
-def authorize_gmail(data: GmailOAuthRequest) -> dict:
+def authorize_gmail(data: GmailOAuthPayload) -> dict:
     redirect_uri = 'http://localhost:8000/gmail-callback'
     client_config = {
         'installed': {
@@ -76,38 +63,44 @@ def authorize_gmail(data: GmailOAuthRequest) -> dict:
     flow.redirect_uri = redirect_uri
 
     # 儲存這個 flow 的 config 以便之後 callback 用
-    oauth_state['client_config'] = client_config
-    oauth_state['redirect_uri'] = redirect_uri
+    app.state.client_config = client_config
+    app.state.redirect_uri = redirect_uri
 
     auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
 
     return {'auth_url': auth_url}
 
 
-# --- /gmail-callback ---
 @app.get('/gmail-callback')
 def gmail_callback(code: str, background_tasks: BackgroundTasks) -> dict:
-    if 'client_config' not in oauth_state:
+    if not app.state.client_config:
         return JSONResponse(
             status_code=400,
             content={'error': '未找到授權前的 config，請重新授權 /authorize-gmail'},
         )
 
-    client_config = oauth_state['client_config']
-    redirect_uri = oauth_state['redirect_uri']
-
     # 建立 Flow 並填入 code 換 token
     flow = Flow.from_client_config(
-        client_config,
+        app.state.client_config,
         scopes=['https://www.googleapis.com/auth/gmail.readonly'],
     )
-    flow.redirect_uri = redirect_uri
+    flow.redirect_uri = app.state.redirect_uri
 
     try:
         flow.fetch_token(code=code)
         credentials = flow.credentials
-
-        background_tasks.add_task(upload_chunks_async, credentials)
+        background_tasks.add_task(
+            requests.post,
+            'http://localhost:8000/ingest/gmail',
+            json={
+                'access_token': credentials.token,
+                'refresh_token': credentials.refresh_token,
+                'token_uri': credentials.token_uri,
+                'client_id': credentials.client_id,
+                'client_secret': credentials.client_secret,
+                'scopes': credentials.scopes,
+            },
+        )
 
         html_content = (
             '<html>\n'
@@ -125,28 +118,16 @@ def gmail_callback(code: str, background_tasks: BackgroundTasks) -> dict:
 
         return HTMLResponse(content=html_content, status_code=200)
 
-        # 建立 Gmail 服務物件
-        # service = build('gmail', 'v1', credentials=credentials)
-        # results = service.users().messages().list(userId='me', maxResults=5).execute()
-        # messages = results.get('messages', [])
-        # print('?????')
-        # print(messages)
-
-        # return {
-        #     'message': '✅ 授權成功，這是你最近 5 封信的 ID',
-        #     'messages': messages,
-        #     'token_info': {
-        #         'access_token': credentials.token,
-        #         'refresh_token': credentials.refresh_token,
-        #         'expires_in': credentials.expiry.isoformat(),
-        #     },
-        # }
-
     except Exception as e:
         return JSONResponse(
             status_code=500,
             content={'error': f'授權流程失敗：{str(e)}'},
         )
+
+
+@app.post('/ingest/gmail')
+def ingest(request: IngestGmailPayload) -> None:
+    print(request)
 
 
 async def chat_stream_response(
