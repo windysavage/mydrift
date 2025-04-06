@@ -21,13 +21,15 @@ class ReindexHandler:
             await self._process_single_document(doc)
             yield idx + 1
 
-    async def _process_single_document(self, document: dict) -> int:
+    async def _process_single_document(
+        self, document: dict, dry_run: bool = False
+    ) -> list[dict]:
         messages = [
             msg for msg in document.get('messages', []) if self._is_text_message(msg)
         ]
 
         if not messages:
-            return 0
+            return
 
         senders = [
             decode_content(participant.get('name', ''))
@@ -35,27 +37,27 @@ class ReindexHandler:
         ]
 
         chunks = self._build_chunks(senders=senders, messages=messages)
-        if not chunks:
-            return 0
-
         text_list = [chunk['text'] for chunk in chunks]
         embeddings = self.embedding_model.encode(
             sentences=text_list, show_progress_bar=True
         )
 
-        async with async_qdrant_client() as client:
-            await ChatVec.iter_upsert_points(
-                client=client,
-                batched_iter_points=ChatVec.prepare_iter_points(chunks, embeddings),
-            )
-        async with async_mongodb_client() as client:
-            await ChatDoc.iter_upsert_docs(
-                client=client, docs=ChatDoc.prepare_iter_docs(chunks)
-            )
-            await ChatDoc.create_index(client=client)
+        for idx, chunk in enumerate(chunks):
+            chunk['embedding'] = embeddings[idx]
 
-        print(f'📤 上傳 {len(chunks)} chunks')
-        return len(chunks)
+        if not dry_run:
+            async with async_qdrant_client() as client:
+                await ChatVec.iter_upsert_points(
+                    client=client,
+                    batched_iter_points=ChatVec.prepare_iter_points(chunks),
+                )
+            async with async_mongodb_client() as client:
+                await ChatDoc.iter_upsert_docs(
+                    client=client, docs=ChatDoc.prepare_iter_docs(chunks)
+                )
+                await ChatDoc.create_index(client=client)
+
+        return chunks
 
     def _build_chunks(self, senders: list[str], messages: list[dict]) -> list[dict]:
         messages.sort(key=lambda x: x['timestamp_ms'])
