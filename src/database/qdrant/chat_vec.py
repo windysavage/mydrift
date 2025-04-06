@@ -23,14 +23,13 @@ class ChatVec(BaseVecCol):
 
     @classmethod
     def prepare_iter_points(
-        cls, chunks: list[dict], emb_list: list[list[float]], batch_size: int = 250
+        cls, chunks: list[dict], batch_size: int = 250
     ) -> Generator:
         points = []
-        for idx, chunk in enumerate(chunks):
-            emb = emb_list[idx].tolist()
+        for chunk in chunks:
             point = PointStruct(
                 id=chunk['chunk_id'],
-                vector={'default': emb},
+                vector={'default': chunk['embedding']},
                 payload={
                     'start_timestamp': chunk['start_timestamp'],
                     'end_timestamp': chunk['end_timestamp'],

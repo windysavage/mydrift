@@ -196,8 +196,6 @@ with view_tab:
 
     if 'doc_current_page' not in st.session_state:
         st.session_state.doc_current_page = 1
-    if 'doc_total_pages' not in st.session_state:
-        st.session_state.doc_total_pages = 1
     if 'doc_chunks' not in st.session_state:
         st.session_state.doc_chunks = []
 
@@ -210,7 +208,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-docs',
+                'http://api:8000/get-paginated-docs',
                 params=params,
                 timeout=10,
             )
@@ -218,7 +216,6 @@ with view_tab:
                 data = resp.json()
                 st.session_state.doc_chunks = data.get('chunks', [])
                 st.session_state.doc_current_page = data.get('page', page)
-                st.session_state.doc_total_pages = data.get('total_pages', 1)
             else:
                 st.session_state.doc_chunks = []
                 st.error(f'❌ API 回傳錯誤：{resp.status_code}')
@@ -226,8 +223,28 @@ with view_tab:
             st.session_state.doc_chunks = []
             st.error(f'❌ 發生錯誤：{e}')
 
+    def fetch_page_count() -> None:
+        try:
+            params = {}
+            if sender_filter.strip():
+                params['senders'] = sender_filter
+
+            resp = httpx.get(
+                'http://api:8000/get-page-count',
+                params=params,
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                st.session_state.doc_total_pages = data.get('total_pages', 1)
+            else:
+                st.error(f'❌ API 回傳錯誤：{resp.status_code}')
+        except Exception as e:
+            st.error(f'❌ 發生錯誤：{e}')
+
     if search_button:
         fetch_page_data(1)
+        fetch_page_count()
 
     chunks = st.session_state.doc_chunks
     if chunks:

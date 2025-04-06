@@ -57,8 +57,6 @@ class BaseVecCol:
                 await client.create_collection(
                     collection_name=full_collection_name,
                     vectors_config=cls.VECTOR_CONFIG,
-                    shard_number=cls.NUMBER_OF_SHARDS,
-                    replication_factor=cls.NUMBER_OF_REPLICA,
                     hnsw_config=cls.HNSW_CONFIG,
                 )
             except Exception as e:

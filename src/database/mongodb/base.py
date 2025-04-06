@@ -22,6 +22,7 @@ class BaseDocCol:
             'COLLECTION_BASE_NAME',
             'COLLECTION_VERSION_NAME',
             'DATABASE_NAME',
+            'INDEX_FIELDS_WITH_DIRECTION',
         ]
         for attr in required_attrs:
             if getattr(cls, attr, None) is None:
@@ -34,6 +35,7 @@ class BaseDocCol:
         assert isinstance(cls.DATABASE_NAME, str)
         assert isinstance(cls.COLLECTION_BASE_NAME, str)
         assert isinstance(cls.COLLECTION_VERSION_NAME, str)
+        assert isinstance(cls.INDEX_FIELDS_WITH_DIRECTION, list)
 
     @classmethod
     def get_full_collection_name(cls) -> str:
@@ -54,6 +56,14 @@ class BaseDocCol:
                 ) from e
 
     @classmethod
+    async def create_index(cls, client: AsyncIOMotorClient) -> None:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+
+        for field_with_direction in cls.INDEX_FIELDS_WITH_DIRECTION:
+            await collection.create_index([field_with_direction])
+
+    @classmethod
     async def iter_upsert_docs(
         cls, client: AsyncIOMotorClient, docs: Iterable[list[dict]]
     ) -> None:
@@ -72,6 +82,19 @@ class BaseDocCol:
 
             if operations:
                 await db[full_collection_name].bulk_write(operations, ordered=False)
+
+    @classmethod
+    async def get_page_count(
+        cls,
+        client: AsyncIOMotorClient,
+        page_size: int,
+        senders: str = '',
+    ) -> int:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+        query_filter = {'senders': {'$all': senders.split(',')}} if senders else {}
+        total = await collection.count_documents(filter=query_filter)
+        return (total + page_size - 1) // page_size
 
     @classmethod
     async def scroll(
@@ -97,16 +120,7 @@ class BaseDocCol:
         if not chunks:
             return {}
 
-        # 查詢總數（分頁 UI 會需要）
-        total = await collection.count_documents(filter=query_filter)
-
-        return {
-            'chunks': chunks,
-            'page': page,
-            'page_size': page_size,
-            'total': total,
-            'total_pages': (total + page_size - 1) // page_size,
-        }
+        return {'chunks': chunks, 'page': page, 'page_size': page_size}
 
     @classmethod
     async def delete_docs_by_ids(
