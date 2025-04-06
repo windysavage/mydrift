@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta, timezone
 import httpx
 import streamlit as st
 
+from settings import settings
+
 # 頁面設定
 st.set_page_config(page_title='MyDrift', layout='wide')
 st.title('🧠 MyDrift：個人對話記憶庫')
@@ -16,7 +18,7 @@ chat_tab, import_tab, view_tab = st.tabs(
 
 # --- 📤 匯入資料分頁 ---
 with import_tab:
-    st.header('📤 匯入 JSON 檔案')
+    st.subheader('📤 匯入 JSON 檔案')
 
     uploaded_files = st.file_uploader(
         '選擇 JSON 檔案（可多選）', type=['json'], accept_multiple_files=True
@@ -67,6 +69,40 @@ with import_tab:
 
         if docs:
             asyncio.run(send_to_backend_and_stream(docs))
+
+    # ------------- Gmail 授權區塊 -------------
+    st.subheader('📧 從 Gmail 匯入信件')
+    st.markdown('請點擊下方按鈕開始 Gmail 授權流程：')
+
+    # 按鈕觸發授權流程
+    if st.button('🔐 開始 Gmail 授權流程'):
+        try:
+            resp = httpx.post(
+                'http://api:8000/authorize-gmail',
+                json={
+                    'client_id': settings.GOOGLE_CLIENT_ID,
+                    'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                auth_url = resp.json().get('auth_url')
+                st.success('✅ 授權連結已建立，請點選下方按鈕進行 Gmail 授權')
+
+                # 點擊後開新分頁跳轉
+                st.markdown(
+                    f'<a href="{auth_url}" target="_blank" '
+                    f'style="font-size: 1.1em; text-decoration: none;">'
+                    '👉 前往 Google 授權頁面'
+                    '</a>',
+                    unsafe_allow_html=True,
+                )
+
+            else:
+                st.error(f'❌ 後端錯誤：{resp.status_code} {resp.text}')
+        except Exception as e:
+            st.error(f'❌ 無法連線後端：{e}')
+
 
 # --- 💬 聊天介面分頁 ---
 with chat_tab:
