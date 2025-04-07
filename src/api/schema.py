@@ -11,7 +11,7 @@ class MessagePayload(BaseModel):
     user_name: str | None = None
 
 
-class UploadJsonPayload(BaseModel):
+class IngestMessagePayload(BaseModel):
     documents: list[dict[str, Any]]
 
 

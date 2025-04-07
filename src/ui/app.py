@@ -32,7 +32,7 @@ with import_tab:
             try:
                 async with client.stream(
                     'POST',
-                    'http://api:8000/upload-json',
+                    'http://api:8000/ingest/message',
                     json={'documents': data},
                     timeout=1200,
                 ) as resp:
@@ -78,7 +78,7 @@ with import_tab:
     if st.button('🔐 開始 Gmail 授權流程'):
         try:
             resp = httpx.post(
-                'http://api:8000/authorize-gmail',
+                'http://api:8000/auth/authorize-gmail',
                 json={
                     'client_id': settings.GOOGLE_CLIENT_ID,
                     'client_secret': settings.GOOGLE_CLIENT_SECRET,
@@ -182,7 +182,7 @@ with chat_tab:
             msg_placeholder = st.empty()
 
             async def get_streaming_reply(message: str) -> str:
-                url = 'http://api:8000/chat'
+                url = 'http://api:8000/chat/chat-with-agent'
                 payload = {
                     'message': message,
                     'llm_source': st.session_state.llm_source,
@@ -244,7 +244,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-paginated-docs',
+                'http://api:8000/memory/get-paginated-docs',
                 params=params,
                 timeout=10,
             )
@@ -266,7 +266,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-page-count',
+                'http://api:8000/memory/get-page-count',
                 params=params,
                 timeout=10,
             )
