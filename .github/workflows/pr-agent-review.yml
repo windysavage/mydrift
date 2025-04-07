@@ -9,16 +9,12 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'run-review')
     runs-on: ubuntu-latest
 
-    env:
-      OPENAI.KEY: ${{ secrets.OPENAI_KEY }}
-      GITHUB.USER_TOKEN: ${{ secrets.GH_USER_TOKEN }}
-
     steps:
       - name: Run CodiumAI PR Agent
         run: |
           docker run --rm -i \
-            -e OPENAI.KEY="$OPENAI.KEY" \
-            -e GITHUB.USER_TOKEN="$GITHUB.USER_TOKEN" \
+            -e OPENAI.KEY="${{ secrets.OPENAI_KEY }}" \
+            -e GITHUB.USER_TOKEN="${{ secrets.GH_USER_TOKEN }}" \
             codiumai/pr-agent:latest \
             --pr_url "${{ github.event.pull_request.html_url }}" review
       - name: Remove `run-review` label after run
