@@ -1,9 +1,12 @@
+import logging
+
 import requests
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
 )
+from google.auth.exceptions import GoogleAuthError
 from google_auth_oauthlib.flow import Flow
 
 from api.schema import (
@@ -15,6 +18,10 @@ auth_router = APIRouter(prefix='/auth', tags=['auth'])
 
 @auth_router.post('/authorize-gmail')
 def authorize_gmail(data: GmailOAuthPayload, request: Request) -> dict:
+    if not data.client_id or not data.client_secret:
+        raise ValueError(
+            'You should provide client_id and client_secret to enable authorization'
+        )
     redirect_uri = 'http://localhost:8000/auth/gmail-callback'
     client_config = {
         'installed': {
@@ -91,7 +98,14 @@ def gmail_callback(
 
         return HTMLResponse(content=html_content, status_code=200)
 
+    except GoogleAuthError as google_auth_error:
+        logging.exception('OAuth 交換 token 失敗')
+        return JSONResponse(
+            status_code=400,
+            content={'error': f'Google OAuth 授權錯誤：{str(google_auth_error)}'},
+        )
     except Exception as e:
+        logging.exception('gmail-callback 發生例外')
         return JSONResponse(
             status_code=500,
             content={'error': f'授權流程失敗：{str(e)}'},
