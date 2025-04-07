@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from api.schema import MessagePayload
-from api.utils import get_embedding_model
+from api.utils import get_embedding_model, safe_stream_wrapper
 from core.agent_handler import AgentHandler
 from core.llm_handler import LLMHandler
 from database.qdrant.client import async_qdrant_client
@@ -12,6 +12,7 @@ from database.qdrant.client import async_qdrant_client
 chat_router = APIRouter(prefix='/chat', tags=['chat'])
 
 
+@safe_stream_wrapper
 async def chat_stream_response(
     message: str,
     llm_name: str,

@@ -5,22 +5,24 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from api.schema import IngestGmailPayload, IngestMessagePayload
-from api.utils import get_embedding_model
-from core.reindex_handler import ReindexHandler
+from api.utils import get_embedding_model, safe_stream_wrapper
+from core.message_handler import MessageHandler
 
 ingest_router = APIRouter(prefix='/ingest', tags=['ingest'])
 
 
-async def reindex_stream_response(
+@safe_stream_wrapper
+async def ingest_message_stream_response(
     documents: list[dict], embedding_model: object
 ) -> AsyncGenerator[int, None]:
-    handler = ReindexHandler(
+    handler = MessageHandler(
         documents=documents,
         embedding_model=embedding_model,
         window_sizes=[5],
         stride=3,
     )
     response = handler.index_message_chunks()
+
     async for indexed_doc_count in response:
         yield (
             json.dumps(
@@ -42,7 +44,8 @@ async def ingest_message(
     documents = payload.documents
 
     return StreamingResponse(
-        reindex_stream_response(documents, embedding_model), media_type='text/plain'
+        ingest_message_stream_response(documents, embedding_model),
+        media_type='text/plain',
     )
 
 
