@@ -15,7 +15,6 @@ st.title('🧠 MyDrift：個人對話記憶庫')
 chat_tab, import_tab, view_tab = st.tabs(
     ['💬 聊天介面', '📤 匯入資料', '📚 記憶庫資料']
 )
-
 # --- 📤 匯入資料分頁 ---
 with import_tab:
     st.subheader('📤 匯入 JSON 檔案')
@@ -36,22 +35,15 @@ with import_tab:
                     json={'documents': data},
                     timeout=1200,
                 ) as resp:
-                    total = 1
-                    indexed = 0
-
                     async for line in resp.aiter_lines():
                         if not line.strip():
                             continue
                         try:
                             info = json.loads(line)
-                            total = info.get('total_doc_count', total)
-                            indexed = info.get('indexed_doc_count', indexed)
-                            percent = min(int((indexed / total) * 100), 100)
-
-                            status_text.markdown(
-                                f'📄 已建立索引：{indexed}/{total} 筆文件'
-                            )
+                            ratio = info.get('indexed_ratio', 0)
+                            percent = int(ratio * 100)
                             progress.progress(percent)
+                            status_text.markdown(f'🚀 已完成：{percent}%')
                         except Exception as e:
                             st.warning(f'無法解析回應：{line} ({e})')
                     st.success('✅ 索引重建完成')

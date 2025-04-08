@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import AsyncGenerator, Iterable
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import UpdateOne
@@ -8,8 +8,9 @@ from database.mongodb.client import async_mongodb_client
 
 async def init_mongodb_cols() -> None:
     from database.mongodb.chat_doc import ChatDoc
+    from database.mongodb.gmail_doc import GmailDoc
 
-    all_docs = [ChatDoc]
+    all_docs = [ChatDoc, GmailDoc]
     async with async_mongodb_client() as client:
         for col in all_docs:
             await col.create_collection(client=client)
@@ -66,11 +67,11 @@ class BaseDocCol:
     @classmethod
     async def iter_upsert_docs(
         cls, client: AsyncIOMotorClient, docs: Iterable[list[dict]]
-    ) -> None:
+    ) -> AsyncGenerator[int, None]:
         db = client[cls.DATABASE_NAME]
         full_collection_name = cls.get_full_collection_name()
 
-        for batched_doc in docs:
+        for idx, batched_doc in enumerate(docs, start=1):
             operations = [
                 UpdateOne(
                     {'_id': doc['doc_id']},
@@ -82,6 +83,8 @@ class BaseDocCol:
 
             if operations:
                 await db[full_collection_name].bulk_write(operations, ordered=False)
+
+            yield idx
 
     @classmethod
     async def get_page_count(

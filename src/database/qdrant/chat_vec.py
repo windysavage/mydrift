@@ -18,8 +18,6 @@ class ChatVec(BaseVecCol):
         )
     }
     HNSW_CONFIG = HnswConfigDiff(m=48, ef_construct=200)
-    PAYLOAD_PARTITIONS = ['senders']
-    PAYLOAD_PARTITION_TYPES = ['keyword']
 
     @classmethod
     def prepare_iter_points(
