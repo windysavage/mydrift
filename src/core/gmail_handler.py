@@ -7,12 +7,11 @@ from bs4 import BeautifulSoup
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-from core.utils import generate_gmail_chunk_id
 from database.mongodb.client import async_mongodb_client
 from database.mongodb.gmail_doc import GmailDoc
 from database.qdrant.client import async_qdrant_client
 from database.qdrant.rag_vec_store import RAGVecStore
-from utils import ensure_date_type
+from utils import ensure_date_type, generate_gmail_chunk_id
 
 
 @attr.s(auto_attribs=True)

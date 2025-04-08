@@ -2,11 +2,11 @@ from collections.abc import AsyncGenerator
 
 import attr
 
-from core.utils import decode_content, generate_message_chunk_id, mask_urls
 from database.mongodb.chat_doc import ChatDoc
 from database.mongodb.client import async_mongodb_client
 from database.qdrant.client import async_qdrant_client
 from database.qdrant.rag_vec_store import RAGVecStore
+from utils import decode_content, generate_message_chunk_id, mask_urls
 
 SOURCE = 'message'
 
