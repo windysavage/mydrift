@@ -1,15 +1,17 @@
 from collections.abc import AsyncGenerator
 
 import attr
-from qdrant_client.conversions.common_types import ScoredPoint
 
-from database.qdrant.chat_vec import ChatVec
+from database.mongodb.chat_doc import ChatDoc
+from database.mongodb.client import async_mongodb_client
+from database.mongodb.gmail_doc import GmailDoc
+from database.qdrant.client import async_qdrant_client
+from database.qdrant.rag_vec_store import RAGVecStore
 
 
 @attr.s()
 class ChatAgent:
     user_name: str | None = attr.ib()
-    qdrant_client: object = attr.ib()
     embedding_model: object = attr.ib()
     llm_chat_func: callable = attr.ib()
 
@@ -22,24 +24,48 @@ class ChatAgent:
             '請全部用繁體中文回答。'
         )
 
+    async def _get_text_list_by_source(self, source: str, ids: list[str]) -> list[str]:
+        if source == 'message':
+            source_cls = ChatDoc
+        elif source == 'gmail':
+            source_cls = GmailDoc
+        else:
+            raise ValueError('There is no {source} source!}')
+
+        async with async_mongodb_client() as client:
+            chunks = await source_cls.get_doc_by_ids(
+                client=client, ids=[_id.replace('-', '') for _id in ids]
+            )
+        return [chunk['text'] for chunk in chunks]
+
     async def _retrieve_similar_messages(
         self, embedding: list[float], limit: int = 5
-    ) -> list[ScoredPoint]:
-        results = await ChatVec.search(
-            client=self.qdrant_client,
-            query_vector=embedding,
-            limit=limit,
-            include_filter_map={'senders': self.user_name},
-        )
-        return results
+    ) -> list[str]:
+        async with async_qdrant_client() as client:
+            vector_results = await RAGVecStore.search(
+                client=client,
+                query_vector=embedding,
+                limit=limit,
+                with_payload=['source'],
+            )
+
+        text_list = []
+        for source in ['message', 'gmail']:
+            vector_ids = [
+                vector_result.id
+                for vector_result in vector_results
+                if vector_result.payload['source'] == source
+            ]
+            text_list += await self._get_text_list_by_source(source, vector_ids)
+
+        return text_list
 
     async def retrieve_context(self, query: str, context_window: int = 30) -> str:
         query_embedding = self.embedding_model.encode([query])[0]
         results = await self._retrieve_similar_messages(
             embedding=query_embedding.tolist(), limit=context_window
         )
-        context = ' '.join([result.payload['text'] for result in results])
-        return context
+        return ' '.join(results)
 
     async def generate_response(
         self, query: str, context_window: int = 3

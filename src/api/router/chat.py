@@ -7,7 +7,6 @@ from api.schema import MessagePayload
 from api.utils import get_embedding_model, safe_stream_wrapper
 from core.agent_handler import AgentHandler
 from core.llm_handler import LLMHandler
-from database.qdrant.client import async_qdrant_client
 
 chat_router = APIRouter(prefix='/chat', tags=['chat'])
 
@@ -21,21 +20,17 @@ async def chat_stream_response(
     user_name: str | None,
     embedding_model: object,
 ) -> AsyncGenerator[str, None]:
-    async with async_qdrant_client() as client:
-        llm_handler = LLMHandler(
-            llm_name=llm_name, llm_source=llm_source, api_key=api_key
-        )
-        llm_chat_func = llm_handler.get_llm_chat_func()
+    llm_handler = LLMHandler(llm_name=llm_name, llm_source=llm_source, api_key=api_key)
+    llm_chat_func = llm_handler.get_llm_chat_func()
 
-        agent_handler = AgentHandler(
-            user_name=user_name,
-            qdrant_client=client,
-            embedding_model=embedding_model,
-            llm_chat_func=llm_chat_func,
-        )
-        response = agent_handler.get_chat_response(message=message)
-        async for token in response:
-            yield token
+    agent_handler = AgentHandler(
+        user_name=user_name,
+        embedding_model=embedding_model,
+        llm_chat_func=llm_chat_func,
+    )
+    response = agent_handler.get_chat_response(message=message)
+    async for token in response:
+        yield token
 
 
 @chat_router.post('/chat-with-agent')

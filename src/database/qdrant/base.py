@@ -15,16 +15,15 @@ from database.qdrant.client import async_qdrant_client
 
 
 async def init_qdrant_cols() -> None:
-    from database.qdrant.chat_vec import ChatVec
-    from database.qdrant.gmail_vec import GmailVec
+    from database.qdrant.rag_vec_store import RAGVecStore
 
-    all_cols = [ChatVec, GmailVec]
+    all_cols = [RAGVecStore]
     async with async_qdrant_client() as client:
         for col in all_cols:
             await col.create_collection(client=client)
 
 
-class BaseVecCol:
+class BaseVecStore:
     def __init_subclass__(cls, **kwargs: dict) -> None:
         super().__init_subclass__(**kwargs)
         required_attrs = [

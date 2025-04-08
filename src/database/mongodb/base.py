@@ -132,3 +132,10 @@ class BaseDocCol:
         db = client[cls.DATABASE_NAME]
         collection = db[cls.get_full_collection_name()]
         await collection.delete_many({'_id': {'$in': ids}})
+
+    @classmethod
+    async def get_doc_by_ids(cls, client: AsyncIOMotorClient, ids: list[str]) -> list:
+        db = client[cls.DATABASE_NAME]
+        collection = db[cls.get_full_collection_name()]
+        cursor = collection.find({'doc_id': {'$in': ids}})
+        return await cursor.to_list(length=None)
