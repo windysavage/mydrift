@@ -7,8 +7,10 @@ from settings import settings
 
 
 @asynccontextmanager
-async def async_qdrant_client() -> AsyncGenerator[AsyncQdrantClient, None]:
-    client = AsyncQdrantClient(url=settings.QDRANT_HOST)
+async def async_qdrant_client(
+    host: str = None,
+) -> AsyncGenerator[AsyncQdrantClient, None]:
+    client = AsyncQdrantClient(url=host or settings.QDRANT_HOST)
     try:
         yield client
     finally:

@@ -43,16 +43,15 @@ services:
 
   streamlit_ui:
     build:
-      context: ../ui
-      dockerfile: Dockerfile.streamlit
+      context: ../
+      dockerfile: docker/Dockerfile.streamlit
     container_name: streamlit_ui
     ports:
       - "8501:8501"
     volumes:
-      - ../ui:/app
+      - ../:/app
     environment:
       - PYTHONUNBUFFERED=1
-    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
 
   mongodb:
     image: mongo:8.0
@@ -74,3 +73,5 @@ services:
       ME_CONFIG_MONGODB_PORT: 27017
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin
+    depends_on:
+    - mongodb

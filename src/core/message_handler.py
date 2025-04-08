@@ -2,28 +2,59 @@ from collections.abc import AsyncGenerator
 
 import attr
 
-from core.utils import decode_content, generate_chunk_id, mask_urls
 from database.mongodb.chat_doc import ChatDoc
 from database.mongodb.client import async_mongodb_client
-from database.qdrant.chat_vec import ChatVec
 from database.qdrant.client import async_qdrant_client
+from database.qdrant.rag_vec_store import RAGVecStore
+from utils import decode_content, generate_message_chunk_id, mask_urls
+
+SOURCE = 'message'
 
 
 @attr.s(auto_attribs=True)
-class ReindexHandler:
+class MessageHandler:
     documents: list[dict]
     embedding_model: object
     window_sizes: list[int] = [5]
     stride: int = 1
 
-    async def index_message_chunks(self) -> AsyncGenerator[int, None]:
-        for idx, doc in enumerate(self.documents):
-            await self._process_single_document(doc)
-            yield idx + 1
+    async def index_message_chunks(
+        self,
+        dry_run: bool = False,
+        batch_size: int = 250,
+    ) -> AsyncGenerator[float, None] | None:
+        all_chunks = []
+        for doc in self.documents:
+            chunks = await self._process_single_document(doc)
+            all_chunks += chunks
 
-    async def _process_single_document(
-        self, document: dict, dry_run: bool = False
-    ) -> list[dict]:
+        if not dry_run:
+            total_batches = (len(chunks) + batch_size - 1) // batch_size
+            batch_count = 0
+            async with async_qdrant_client() as client:
+                async for _ in RAGVecStore.iter_upsert_points(
+                    client=client,
+                    batched_iter_points=RAGVecStore.prepare_iter_points(
+                        [
+                            {
+                                'chunk_id': chunk['chunk_id'],
+                                'embedding': chunk['embedding'],
+                                'source': SOURCE,
+                            }
+                            for chunk in all_chunks
+                        ]
+                    ),
+                ):
+                    pass
+            async with async_mongodb_client() as client:
+                async for _ in ChatDoc.iter_upsert_docs(
+                    client=client, docs=ChatDoc.prepare_iter_docs(all_chunks)
+                ):
+                    batch_count += 1
+                await ChatDoc.create_index(client=client)
+            yield batch_count / total_batches
+
+    async def _process_single_document(self, document: dict) -> list[dict]:
         messages = [
             msg for msg in document.get('messages', []) if self._is_text_message(msg)
         ]
@@ -45,18 +76,6 @@ class ReindexHandler:
         for idx, chunk in enumerate(chunks):
             chunk['embedding'] = embeddings[idx]
 
-        if not dry_run:
-            async with async_qdrant_client() as client:
-                await ChatVec.iter_upsert_points(
-                    client=client,
-                    batched_iter_points=ChatVec.prepare_iter_points(chunks),
-                )
-            async with async_mongodb_client() as client:
-                await ChatDoc.iter_upsert_docs(
-                    client=client, docs=ChatDoc.prepare_iter_docs(chunks)
-                )
-                await ChatDoc.create_index(client=client)
-
         return chunks
 
     def _build_chunks(self, senders: list[str], messages: list[dict]) -> list[dict]:
@@ -70,7 +89,7 @@ class ReindexHandler:
                 chunk_text = mask_urls(decode_content(chunk_text))
 
                 chunk = {
-                    'chunk_id': generate_chunk_id(
+                    'chunk_id': generate_message_chunk_id(
                         start_ts=window[0]['timestamp_ms'],
                         end_ts=window[-1]['timestamp_ms'],
                         senders=senders,

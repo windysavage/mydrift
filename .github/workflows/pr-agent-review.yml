@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run CodiumAI PR Agent
+      - name: Run PR Agent
         run: |
           docker run --rm -i \
             -e OPENAI.KEY="${{ secrets.OPENAI_KEY }}" \

@@ -11,5 +11,19 @@ class MessagePayload(BaseModel):
     user_name: str | None = None
 
 
-class UploadJsonPayload(BaseModel):
+class IngestMessagePayload(BaseModel):
     documents: list[dict[str, Any]]
+
+
+class GmailOAuthPayload(BaseModel):
+    client_id: str
+    client_secret: str
+
+
+class IngestGmailPayload(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_uri: str
+    client_id: str
+    client_secret: str
+    scopes: list[str]

@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta, timezone
 import httpx
 import streamlit as st
 
+from settings import settings
+
 # 頁面設定
 st.set_page_config(page_title='MyDrift', layout='wide')
 st.title('🧠 MyDrift：個人對話記憶庫')
@@ -13,10 +15,9 @@ st.title('🧠 MyDrift：個人對話記憶庫')
 chat_tab, import_tab, view_tab = st.tabs(
     ['💬 聊天介面', '📤 匯入資料', '📚 記憶庫資料']
 )
-
 # --- 📤 匯入資料分頁 ---
 with import_tab:
-    st.header('📤 匯入 JSON 檔案')
+    st.subheader('📤 匯入 JSON 檔案')
 
     uploaded_files = st.file_uploader(
         '選擇 JSON 檔案（可多選）', type=['json'], accept_multiple_files=True
@@ -30,26 +31,19 @@ with import_tab:
             try:
                 async with client.stream(
                     'POST',
-                    'http://api:8000/upload-json',
+                    'http://api:8000/ingest/message',
                     json={'documents': data},
                     timeout=1200,
                 ) as resp:
-                    total = 1
-                    indexed = 0
-
                     async for line in resp.aiter_lines():
                         if not line.strip():
                             continue
                         try:
                             info = json.loads(line)
-                            total = info.get('total_doc_count', total)
-                            indexed = info.get('indexed_doc_count', indexed)
-                            percent = min(int((indexed / total) * 100), 100)
-
-                            status_text.markdown(
-                                f'📄 已建立索引：{indexed}/{total} 筆文件'
-                            )
+                            ratio = info.get('indexed_ratio', 0)
+                            percent = int(ratio * 100)
                             progress.progress(percent)
+                            status_text.markdown(f'🚀 已完成：{percent}%')
                         except Exception as e:
                             st.warning(f'無法解析回應：{line} ({e})')
                     st.success('✅ 索引重建完成')
@@ -67,6 +61,40 @@ with import_tab:
 
         if docs:
             asyncio.run(send_to_backend_and_stream(docs))
+
+    # ------------- Gmail 授權區塊 -------------
+    st.subheader('📧 從 Gmail 匯入信件')
+    st.markdown('請點擊下方按鈕開始 Gmail 授權流程：')
+
+    # 按鈕觸發授權流程
+    if st.button('🔐 開始 Gmail 授權流程'):
+        try:
+            resp = httpx.post(
+                'http://api:8000/auth/authorize-gmail',
+                json={
+                    'client_id': settings.GOOGLE_CLIENT_ID,
+                    'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                auth_url = resp.json().get('auth_url')
+                st.success('✅ 授權連結已建立，請點選下方按鈕進行 Gmail 授權')
+
+                # 點擊後開新分頁跳轉
+                st.markdown(
+                    f'<a href="{auth_url}" target="_blank" '
+                    f'style="font-size: 1.1em; text-decoration: none;">'
+                    '👉 前往 Google 授權頁面'
+                    '</a>',
+                    unsafe_allow_html=True,
+                )
+
+            else:
+                st.error(f'❌ 後端錯誤：{resp.status_code} {resp.text}')
+        except Exception as e:
+            st.error(f'❌ 無法連線後端：{e}')
+
 
 # --- 💬 聊天介面分頁 ---
 with chat_tab:
@@ -146,7 +174,7 @@ with chat_tab:
             msg_placeholder = st.empty()
 
             async def get_streaming_reply(message: str) -> str:
-                url = 'http://api:8000/chat'
+                url = 'http://api:8000/chat/chat-with-agent'
                 payload = {
                     'message': message,
                     'llm_source': st.session_state.llm_source,
@@ -208,7 +236,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-paginated-docs',
+                'http://api:8000/memory/get-paginated-docs',
                 params=params,
                 timeout=10,
             )
@@ -230,7 +258,7 @@ with view_tab:
                 params['senders'] = sender_filter
 
             resp = httpx.get(
-                'http://api:8000/get-page-count',
+                'http://api:8000/memory/get-page-count',
                 params=params,
                 timeout=10,
             )

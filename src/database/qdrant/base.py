@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import AsyncGenerator, Iterable, Sequence
 
 from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions.common_types import ScoredPoint
@@ -15,15 +15,15 @@ from database.qdrant.client import async_qdrant_client
 
 
 async def init_qdrant_cols() -> None:
-    from database.qdrant.chat_vec import ChatVec
+    from database.qdrant.rag_vec_store import RAGVecStore
 
-    all_cols = [ChatVec]
+    all_cols = [RAGVecStore]
     async with async_qdrant_client() as client:
         for col in all_cols:
             await col.create_collection(client=client)
 
 
-class BaseVecCol:
+class BaseVecStore:
     def __init_subclass__(cls, **kwargs: dict) -> None:
         super().__init_subclass__(**kwargs)
         required_attrs = [
@@ -65,11 +65,12 @@ class BaseVecCol:
     @classmethod
     async def iter_upsert_points(
         cls, client: AsyncQdrantClient, batched_iter_points: Iterable
-    ) -> None:
-        for batched_point in batched_iter_points:
+    ) -> AsyncGenerator[int, None]:
+        for idx, batched_point in enumerate(batched_iter_points, start=1):
             await client.upsert(
                 collection_name=cls.get_full_collection_name(), points=batched_point
             )
+            yield idx
 
     @classmethod
     async def search(
