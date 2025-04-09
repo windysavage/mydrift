@@ -22,7 +22,7 @@ class GmailHandler:
     client_id: str
     client_secret: str
     scopes: list[str]
-    embedding_model: object
+    encoder: object
 
     def __attrs_post_init__(self) -> None:
         credentials = Credentials(
@@ -48,9 +48,7 @@ class GmailHandler:
             max_results=max_results, label_ids=label_ids, q=query_filter
         )
         text_list = [chunk['text'] for chunk in chunks]
-        embeddings = self.embedding_model.encode(
-            sentences=text_list, show_progress_bar=True
-        )
+        embeddings = self.encoder.encode(sentences=text_list, show_progress_bar=True)
 
         for idx, chunk in enumerate(chunks):
             chunk['embedding'] = embeddings[idx]

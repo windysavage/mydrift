@@ -2,7 +2,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 
-def load_embedding_model_by_name(
+def load_encoder_by_name(
     model_name: str = 'jinaai/jina-embeddings-v2-base-zh',
 ) -> SentenceTransformer:
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'

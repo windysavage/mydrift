@@ -14,7 +14,7 @@ SOURCE = 'message'
 @attr.s(auto_attribs=True)
 class MessageHandler:
     documents: list[dict]
-    embedding_model: object
+    encoder: object
     window_sizes: list[int] = [5]
     stride: int = 1
 
@@ -29,7 +29,7 @@ class MessageHandler:
             all_chunks += chunks
 
         if not dry_run:
-            total_batches = (len(chunks) + batch_size - 1) // batch_size
+            total_batches = (len(all_chunks) + batch_size - 1) // batch_size
             batch_count = 0
             async with async_qdrant_client() as client:
                 async for _ in RAGVecStore.iter_upsert_points(
@@ -69,9 +69,7 @@ class MessageHandler:
 
         chunks = self._build_chunks(senders=senders, messages=messages)
         text_list = [chunk['text'] for chunk in chunks]
-        embeddings = self.embedding_model.encode(
-            sentences=text_list, show_progress_bar=True
-        )
+        embeddings = self.encoder.encode(sentences=text_list, show_progress_bar=True)
 
         for idx, chunk in enumerate(chunks):
             chunk['embedding'] = embeddings[idx]

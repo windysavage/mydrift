@@ -12,7 +12,7 @@ from database.qdrant.rag_vec_store import RAGVecStore
 @attr.s()
 class ChatAgent:
     user_name: str | None = attr.ib()
-    embedding_model: object = attr.ib()
+    encoder: object = attr.ib()
     llm_chat_func: callable = attr.ib()
 
     def _construct_prompt(self, query: str, context: str) -> str:
@@ -61,7 +61,7 @@ class ChatAgent:
         return text_list
 
     async def retrieve_context(self, query: str, context_window: int = 30) -> str:
-        query_embedding = self.embedding_model.encode([query])[0]
+        query_embedding = self.encoder.encode([query])[0]
         results = await self._retrieve_similar_messages(
             embedding=query_embedding.tolist(), limit=context_window
         )

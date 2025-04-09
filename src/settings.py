@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    ENVIRONMENT: str
     QDRANT_HOST: str
     MONGODB_HOST: str
     OLLAMA_HOST: str
