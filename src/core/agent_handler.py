@@ -3,12 +3,13 @@ from collections.abc import AsyncGenerator
 import attr
 
 from agent.chat_agent import ChatAgent
+from embedding.base import EncoderProtocol
 
 
 @attr.s(auto_attribs=True)
 class AgentHandler:
     user_name: str | None
-    encoder: object
+    encoder: EncoderProtocol
     llm_chat_func: callable
 
     async def get_chat_response(self, message: str) -> AsyncGenerator[str, None]:

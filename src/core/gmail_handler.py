@@ -11,6 +11,7 @@ from database.mongodb.client import async_mongodb_client
 from database.mongodb.gmail_doc import GmailDoc
 from database.qdrant.client import async_qdrant_client
 from database.qdrant.rag_vec_store import RAGVecStore
+from embedding.base import EncoderProtocol
 from utils import ensure_date_type, generate_gmail_chunk_id
 
 
@@ -22,7 +23,7 @@ class GmailHandler:
     client_id: str
     client_secret: str
     scopes: list[str]
-    encoder: object
+    encoder: EncoderProtocol
 
     def __attrs_post_init__(self) -> None:
         credentials = Credentials(

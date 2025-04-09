@@ -8,13 +8,14 @@ from api.schema import IngestGmailPayload, IngestMessagePayload
 from api.utils import get_encoder, safe_stream_wrapper
 from core.gmail_handler import GmailHandler
 from core.message_handler import MessageHandler
+from embedding.base import EncoderProtocol
 
 ingest_router = APIRouter(prefix='/ingest', tags=['ingest'])
 
 
 @safe_stream_wrapper
 async def ingest_message_stream_response(
-    documents: list[dict], encoder: object
+    documents: list[dict], encoder: EncoderProtocol
 ) -> AsyncGenerator[int, None]:
     handler = MessageHandler(
         documents=documents,
@@ -44,7 +45,7 @@ async def ingest_gmail_stream_response(
     client_id: str,
     client_secret: str,
     scopes: list[str],
-    encoder: object,
+    encoder: EncoderProtocol,
 ) -> AsyncGenerator[int, None]:
     handler = GmailHandler(
         access_token=access_token,
@@ -73,7 +74,7 @@ async def ingest_gmail_stream_response(
 @ingest_router.post('/message')
 async def ingest_message(
     payload: IngestMessagePayload,
-    encoder: object = Depends(get_encoder),
+    encoder: EncoderProtocol = Depends(get_encoder),  # noqa: B008
 ) -> dict:
     documents = payload.documents
 
@@ -86,7 +87,7 @@ async def ingest_message(
 @ingest_router.post('/gmail')
 async def ingest_gmail(
     payload: IngestGmailPayload,
-    encoder: object = Depends(get_encoder),
+    encoder: EncoderProtocol = Depends(get_encoder),  # noqa: B008
 ) -> None:
     return StreamingResponse(
         ingest_gmail_stream_response(

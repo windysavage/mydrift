@@ -7,6 +7,7 @@ from api.schema import MessagePayload
 from api.utils import get_encoder, safe_stream_wrapper
 from core.agent_handler import AgentHandler
 from core.llm_handler import LLMHandler
+from embedding.base import EncoderProtocol
 
 chat_router = APIRouter(prefix='/chat', tags=['chat'])
 
@@ -18,7 +19,7 @@ async def chat_stream_response(
     llm_source: str,
     api_key: str | None,
     user_name: str | None,
-    encoder: object,
+    encoder: EncoderProtocol,
 ) -> AsyncGenerator[str, None]:
     llm_handler = LLMHandler(llm_name=llm_name, llm_source=llm_source, api_key=api_key)
     llm_chat_func = llm_handler.get_llm_chat_func()
@@ -36,7 +37,7 @@ async def chat_stream_response(
 @chat_router.post('/chat-with-agent')
 async def chat_with_agent(
     payload: MessagePayload,
-    encoder: object = Depends(get_encoder),
+    encoder: EncoderProtocol = Depends(get_encoder),  # noqa: B008
 ) -> dict:
     return StreamingResponse(
         chat_stream_response(

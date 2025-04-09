@@ -7,12 +7,13 @@ from database.mongodb.client import async_mongodb_client
 from database.mongodb.gmail_doc import GmailDoc
 from database.qdrant.client import async_qdrant_client
 from database.qdrant.rag_vec_store import RAGVecStore
+from embedding.base import EncoderProtocol
 
 
 @attr.s()
 class ChatAgent:
     user_name: str | None = attr.ib()
-    encoder: object = attr.ib()
+    encoder: EncoderProtocol = attr.ib()
     llm_chat_func: callable = attr.ib()
 
     def _construct_prompt(self, query: str, context: str) -> str:
