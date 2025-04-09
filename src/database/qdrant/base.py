@@ -12,6 +12,7 @@ from qdrant_client.http.models import (
 )
 
 from database.qdrant.client import async_qdrant_client
+from settings import get_settings
 
 
 async def init_qdrant_cols() -> None:
@@ -47,7 +48,11 @@ class BaseVecStore:
 
     @classmethod
     def get_full_collection_name(cls) -> str:
-        return f'{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+        return (
+            f'{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+            if get_settings().ENVIRONMENT != 'test'
+            else f'pytest-{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+        )
 
     @classmethod
     async def create_collection(cls, client: AsyncQdrantClient) -> None:
