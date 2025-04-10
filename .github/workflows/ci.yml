@@ -23,8 +23,8 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: 🐳 Build Docker Compose
-        run: docker-compose build
+        run: docker compose build
 
       - name: 🧪 Run Pytest inside API container
         run: |
-          docker-compose run --rm api pytest --cov=src --cov-report=term-missing ./src/tests
+          docker compose run --rm api pytest --cov=src --cov-report=term-missing ./src/tests
