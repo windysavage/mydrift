@@ -31,7 +31,16 @@ jobs:
         run: |
           docker buildx build -f docker/Dockerfile.api .
 
-      - name: 🧪 Run Pytest inside API container
-        run: |
-          docker compose -f docker/docker-compose.yaml run --rm api \
-            pytest --cov=src --cov-report=term-missing ./src/tests
+      - name: 🐳 Start only needed services
+        run: docker compose -f docker/docker-compose.yaml up -d qdrant api mongodb
+
+      - name: ⏱️ Wait for dependencies
+        run: sleep 5
+
+      - name: 🧪 Run Pytest
+        run: docker compose exec api pytest --cov=src --cov-report=term-missing ./src/tests
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: docker compose -f docker/docker-compose.yaml down
+
