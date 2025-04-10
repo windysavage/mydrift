@@ -12,8 +12,8 @@ ERROR_MESSAGE_KEY = 'message'
 ERROR_VALUE = 'error_value'
 
 
-def get_embedding_model(request: Request) -> object:
-    return request.app.state.embedding_model
+def get_encoder(request: Request) -> object:
+    return request.app.state.encoder
 
 
 def safe_stream_wrapper(

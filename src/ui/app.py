@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import httpx
 import streamlit as st
 
-from settings import settings
+from settings import get_settings
 
 # 頁面設定
 st.set_page_config(page_title='MyDrift', layout='wide')
@@ -72,8 +72,8 @@ with import_tab:
             resp = httpx.post(
                 'http://api:8000/auth/authorize-gmail',
                 json={
-                    'client_id': settings.GOOGLE_CLIENT_ID,
-                    'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                    'client_id': get_settings().GOOGLE_CLIENT_ID,
+                    'client_secret': get_settings().GOOGLE_CLIENT_SECRET,
                 },
                 timeout=10,
             )

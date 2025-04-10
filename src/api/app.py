@@ -9,7 +9,7 @@ from api.router.ingest import ingest_router
 from api.router.memory import memory_router
 from database.mongodb.base import init_mongodb_cols
 from database.qdrant.base import init_qdrant_cols
-from embedding.loader import load_embedding_model_by_name
+from embedding.encoder import Encoder
 
 app = FastAPI()
 
@@ -18,7 +18,7 @@ app = FastAPI()
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     await init_qdrant_cols()
     await init_mongodb_cols()
-    app.state.embedding_model = load_embedding_model_by_name()
+    app.state.encoder = Encoder()
     yield
     print('🛑 Shutting down...')
 
