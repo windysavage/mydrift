@@ -23,7 +23,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: 🐳 Build Docker Compose
-        run: docker compose build
+        run: docker compose build -f docker/docker-compose.yaml
 
       - name: 🧪 Run Pytest inside API container
         run: |
