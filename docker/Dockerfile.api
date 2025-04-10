@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     procps \
-    git \
+    git
     
 RUN pip install poetry==${POETRY_VERSION} \
     && poetry config virtualenvs.create false \
