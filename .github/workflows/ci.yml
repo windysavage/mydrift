@@ -36,7 +36,7 @@ jobs:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
         run: |
-          docker compose build -f docker/Dockerfile.api .
+          docker compose -f docker/docker-compose.yaml build api
 
       - name: 🐳 Run docker-compose from correct location
         run: |
