@@ -17,6 +17,13 @@ jobs:
       - name: 📦 Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: 📦 Disk usage BEFORE build
+        run: |
+          echo "==== Disk Space ===="
+          df -h
+          echo "==== Docker Usage ===="
+          docker system df
+
       - name: 🐳 Build with BuildKit
         env:
           DOCKER_BUILDKIT: 1
