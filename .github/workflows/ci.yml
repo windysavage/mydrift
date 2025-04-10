@@ -21,6 +21,9 @@ jobs:
 
       - name: 📦 Set up Docker Buildx (optional)
         uses: docker/setup-buildx-action@v2
+      
+      - name: 🔧 Clean up Docker
+        run: docker system prune -a -f
 
       - name: 🐳 Build Docker Compose
         run: docker compose -f docker/docker-compose.yaml build
