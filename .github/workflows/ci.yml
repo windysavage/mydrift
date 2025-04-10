@@ -1,0 +1,30 @@
+name: Run Pytest in Docker Compose
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python (for lint/coverage tools if needed)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Set up Docker Buildx (optional)
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🐳 Build Docker Compose
+        run: docker-compose build
+
+      - name: 🧪 Run Pytest inside API container
+        run: |
+          docker-compose run --rm api pytest --cov=src --cov-report=term-missing ./src/tests
