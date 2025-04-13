@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 import attr
 
+from agent.base import BaseAgent
 from database.mongodb.chat_doc import ChatDoc
 from database.mongodb.client import async_mongodb_client
 from database.mongodb.gmail_doc import GmailDoc
@@ -11,18 +12,17 @@ from embedding.base import EncoderProtocol
 
 
 @attr.s()
-class ChatAgent:
+class ChatAgent(BaseAgent):
     user_name: str | None = attr.ib()
     encoder: EncoderProtocol = attr.ib()
     llm_chat_func: callable = attr.ib()
 
     def _construct_prompt(self, query: str, context: str) -> str:
-        return (
-            f'我是 {self.user_name}，因此所有以{self.user_name}開頭的訊息都是我說的。'
-            f'這裡有我之前的回憶：{context}，'
-            f'請根據我之前的回憶，回答我下列問題：{query}，'
-            '請自行判斷是否需要參考回憶作答'
-            '請全部用繁體中文回答。'
+        prompt_template = self._load_prompt(
+            prompt_source='chat_agent_prompts.toml', prompt_name='memory_recall_prompt'
+        )
+        return prompt_template.format(
+            user_name=self.user_name, query=query, context=context
         )
 
     async def _get_text_list_by_source(self, source: str, ids: list[str]) -> list[str]:
