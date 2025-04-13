@@ -4,6 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import UpdateOne
 
 from database.mongodb.client import async_mongodb_client
+from settings import get_settings
 
 
 async def init_mongodb_cols() -> None:
@@ -40,7 +41,11 @@ class BaseDocCol:
 
     @classmethod
     def get_full_collection_name(cls) -> str:
-        return f'{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+        return (
+            f'{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+            if get_settings().ENVIRONMENT != 'test'
+            else f'pytest-{cls.COLLECTION_BASE_NAME}-{cls.COLLECTION_VERSION_NAME}'
+        )
 
     @classmethod
     async def create_collection(cls, client: AsyncIOMotorClient) -> None:

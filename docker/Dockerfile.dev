@@ -1,5 +1,0 @@
-FROM api
-
-RUN poetry install --no-root --with jupyter
-
-CMD ["bash"]
