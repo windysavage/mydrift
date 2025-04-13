@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
+from consts import INDEX_GMAIL_MAX_RESULT
 from database.mongodb.client import async_mongodb_client
 from database.mongodb.gmail_doc import GmailDoc
 from database.qdrant.client import async_qdrant_client
@@ -39,7 +40,7 @@ class GmailHandler:
 
     async def index_gmail_chunks(
         self,
-        max_results: int,
+        max_results: int = INDEX_GMAIL_MAX_RESULT,
         label_ids: list[str] | None = None,
         query_filter: str = '',
         dry_run: bool = False,
@@ -117,7 +118,7 @@ class GmailHandler:
 
     def _fetch_recent_messages(
         self,
-        max_results: int = 5,
+        max_results: int = INDEX_GMAIL_MAX_RESULT,
         label_ids: list[str] | None = None,
         q: str = '',
     ) -> list[dict]:
