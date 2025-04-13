@@ -29,7 +29,7 @@ def safe_stream_wrapper(
             async for item in func(*args, **kwargs):
                 yield item
         except Exception as e:
-            logging.exception('Streaming 發生未預期錯誤')
+            logging.exception('Unexpected error occurred during streaming')
             yield (
                 json.dumps(
                     {
@@ -56,7 +56,7 @@ def safe_async_wrapper(
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            logging.exception('API handler 發生未預期錯誤')
+            logging.exception('Unexpected error occurred in API handler')
             return JSONResponse(
                 status_code=status_code,
                 content={

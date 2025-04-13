@@ -1,7 +1,6 @@
 import logging
 
-import requests
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
@@ -33,14 +32,12 @@ def authorize_gmail(data: GmailOAuthPayload, request: Request) -> dict:
         }
     }
 
-    # 建立 Flow
     flow = Flow.from_client_config(
         client_config,
         scopes=['https://www.googleapis.com/auth/gmail.readonly'],
     )
     flow.redirect_uri = redirect_uri
 
-    # 儲存這個 flow 的 config 以便之後 callback 用
     request.app.state.client_config = client_config
     request.app.state.redirect_uri = redirect_uri
 
@@ -50,16 +47,18 @@ def authorize_gmail(data: GmailOAuthPayload, request: Request) -> dict:
 
 
 @auth_router.get('/gmail-callback')
-def gmail_callback(
-    code: str, background_tasks: BackgroundTasks, request: Request
-) -> dict:
+def gmail_callback(code: str, request: Request) -> dict:
     if not request.app.state.client_config:
         return JSONResponse(
             status_code=400,
-            content={'error': '未找到授權前的 config，請重新授權 /authorize-gmail'},
+            content={
+                'error': (
+                    'Missing pre-authorization config. '
+                    'Please re-authorize via /authorize-gmail.'
+                )
+            },
         )
 
-    # 建立 Flow 並填入 code 換 token
     flow = Flow.from_client_config(
         request.app.state.client_config,
         scopes=['https://www.googleapis.com/auth/gmail.readonly'],
@@ -69,29 +68,26 @@ def gmail_callback(
     try:
         flow.fetch_token(code=code)
         credentials = flow.credentials
-        background_tasks.add_task(
-            requests.post,
-            'http://localhost:8000/ingest/gmail',
-            json={
-                'access_token': credentials.token,
-                'refresh_token': credentials.refresh_token,
-                'token_uri': credentials.token_uri,
-                'client_id': credentials.client_id,
-                'client_secret': credentials.client_secret,
-                'scopes': credentials.scopes,
-            },
-        )
+        request.app.state.credentials_dict = {
+            'access_token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes,
+        }
 
         html_content = (
             '<html>\n'
             '<head>\n'
-            '<title>匯入完成</title>\n'
+            '<title>Authorization Complete</title>\n'
             '</head>\n'
-            '<body style="font-family: sans-serif;'
-            ' text-align: center; margin-top: 100px;">\n'
-            '<h1>✅ 匯入成功</h1>\n'
-            '<p>信件已成功匯入記憶庫！</p>\n'
-            '<p>你可以關閉這個視窗，回到 <b>MyDrift</b> 查看資料。</p>\n'
+            '<body style="font-family: sans-serif; '
+            'text-align: center; margin-top: 100px;">\n'
+            '<h1>✅ Authorization Successful</h1>\n'
+            '<p>You have successfully granted access to your Gmail account.</p>\n'
+            '<p>You can now start importing your emails into <b>MyDrift</b>.</p>\n'
+            '<p>You may close this window.</p>\n'
             '</body>\n'
             '</html>\n'
         )
@@ -99,14 +95,24 @@ def gmail_callback(
         return HTMLResponse(content=html_content, status_code=200)
 
     except GoogleAuthError as google_auth_error:
-        logging.exception('OAuth 交換 token 失敗')
+        logging.exception('Failed to exchange token during OAuth')
         return JSONResponse(
             status_code=400,
-            content={'error': f'Google OAuth 授權錯誤：{str(google_auth_error)}'},
+            content={
+                'error': f'Google OAuth authorization error: {str(google_auth_error)}'
+            },
         )
     except Exception as e:
-        logging.exception('gmail-callback 發生例外')
+        logging.exception('Exception occurred during gmail-callback')
         return JSONResponse(
             status_code=500,
-            content={'error': f'授權流程失敗：{str(e)}'},
+            content={'error': f'Authorization process failed: {str(e)}'},
         )
+
+
+@auth_router.post('/get-auth-status')
+def get_auth_status(request: Request) -> dict:
+    credentials = getattr(request.app.state, 'credentials_dict', None)
+    if credentials:
+        return {'authorized': True}
+    return {'authorized': False}
