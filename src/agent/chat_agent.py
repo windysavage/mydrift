@@ -61,7 +61,7 @@ class ChatAgent(BaseAgent):
 
         return text_list
 
-    async def retrieve_context(self, query: str, context_window: int = 30) -> str:
+    async def _retrieve_context(self, query: str, context_window: int = 30) -> str:
         query_embedding = self.encoder.encode([query])[0]
         results = await self._retrieve_similar_messages(
             embedding=query_embedding.tolist(), limit=context_window
@@ -71,7 +71,7 @@ class ChatAgent(BaseAgent):
     async def generate_response(
         self, query: str, context_window: int = 3
     ) -> AsyncGenerator[str, None]:
-        context = await self.retrieve_context(query, context_window=context_window)
+        context = await self._retrieve_context(query, context_window=context_window)
         async for token in self.llm_chat_func(
             prompt=self._construct_prompt(query=query, context=context)
         ):
