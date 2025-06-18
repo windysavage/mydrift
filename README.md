@@ -38,7 +38,7 @@ make up
 This launches:
 - 🚀 **FastAPI** backend – chat query & data upload APIs
 - 💻 **Streamlit** frontend – chat interface, data viewer, and import tool
-- 📦 **Elasticsearch** – vector indexing and search
+- 📦 **Qdrant** – vector indexing and search
 
 ---
 
