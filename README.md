@@ -82,16 +82,6 @@ Each uploaded JSON file should follow this structure (example from [Facebook Mes
 | Command      | Description                        |
 |--------------|------------------------------------|
 | `make build` | Build all Docker images            |
-| `make up`    | Start the full stack via Docker    |
+| `make up`    | Start all the services via Docker    |
 
 ---
-
-## 📌 Future Plans
-
-- [ ] Import support for note formats like Markdown
-
----
-
-## 👨‍💻 Author
-
-This is a personal side project – contributions and feedback are welcome!
