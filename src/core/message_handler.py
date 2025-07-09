@@ -16,7 +16,7 @@ SOURCE = 'message'
 class MessageHandler:
     documents: list[dict]
     encoder: EncoderProtocol
-    window_sizes: list[int] = [5]
+    window_sizes: list[int] = [3]
     stride: int = 1
 
     async def index_message_chunks(
