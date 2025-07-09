@@ -26,7 +26,14 @@ def ensure_date_type(
 
 
 def decode_content(content_str: str) -> str:
-    return content_str.encode('latin1').decode('utf-8')
+    try:
+        content_str.encode('utf-8')
+        return content_str
+    except UnicodeEncodeError:
+        try:
+            return content_str.encode('latin1').decode('utf-8')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return content_str
 
 
 def mask_urls(text: str) -> str:

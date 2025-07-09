@@ -8,5 +8,5 @@ Please answer the user's question based on this memory: {query}
 
 Use your best judgment to determine whether the provided memory is relevant to the question.
 
-Respond in a clear, professional manner, and use Traditional Chinese in all your answers.
+Respond in a clear, professional manner, and use English in all your answers.
 """
