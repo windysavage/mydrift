@@ -1,7 +1,5 @@
 # 🧠 MyDrift
 
-![MyDrift UI Preview](image/preview.png)
-
 **MyDrift** is a conversation-centric personal memory system that combines a **Streamlit** frontend with a **FastAPI** backend, enabling you to import conversation records and perform natural language queries with ease.
 
 ---
