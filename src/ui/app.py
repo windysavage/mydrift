@@ -210,6 +210,7 @@ with chat_tab:
                 url = 'http://api:8000/chat/chat-with-agent'
                 payload = {
                     'message': message,
+                    'history': st.session_state.messages,
                     'llm_source': st.session_state.llm_source,
                     'llm_name': st.session_state.llm_name,
                     'api_key': st.session_state.api_key,

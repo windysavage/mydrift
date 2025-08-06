@@ -12,11 +12,13 @@ class AgentHandler:
     encoder: EncoderProtocol
     llm_chat_func: callable
 
-    async def get_chat_response(self, message: str) -> AsyncGenerator[str, None]:
+    async def get_chat_response(
+        self, message: str, history: list[dict]
+    ) -> AsyncGenerator[str, None]:
         chat_agent = ChatAgent(
             user_name=self.user_name,
             encoder=self.encoder,
             llm_chat_func=self.llm_chat_func,
         )
-        async for token in chat_agent.generate_response(query=message):
+        async for token in chat_agent.generate_response(query=message, history=history):
             yield token

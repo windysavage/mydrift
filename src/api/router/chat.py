@@ -15,6 +15,7 @@ chat_router = APIRouter(prefix='/chat', tags=['chat'])
 @safe_stream_wrapper
 async def chat_stream_response(
     message: str,
+    history: list[dict],
     llm_name: str,
     llm_source: str,
     api_key: str | None,
@@ -29,7 +30,7 @@ async def chat_stream_response(
         encoder=encoder,
         llm_chat_func=llm_chat_func,
     )
-    response = agent_handler.get_chat_response(message=message)
+    response = agent_handler.get_chat_response(message=message, history=history)
     async for token in response:
         yield token
 
@@ -42,6 +43,7 @@ async def chat_with_agent(
     return StreamingResponse(
         chat_stream_response(
             message=payload.message,
+            history=payload.history,
             llm_name=payload.llm_name,
             llm_source=payload.llm_source,
             api_key=payload.api_key,

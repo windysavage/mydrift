@@ -69,10 +69,10 @@ class ChatAgent(BaseAgent):
         return ' '.join(results)
 
     async def generate_response(
-        self, query: str, context_window: int = 3
+        self, query: str, history: list[dict], context_window: int = 3
     ) -> AsyncGenerator[str, None]:
         context = await self._retrieve_context(query, context_window=context_window)
         async for token in self.llm_chat_func(
-            prompt=self._construct_prompt(query=query, context=context)
+            prompt=self._construct_prompt(query=query, context=context), history=history
         ):
             yield token
